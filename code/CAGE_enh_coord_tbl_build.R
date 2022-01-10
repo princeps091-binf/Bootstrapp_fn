@@ -95,3 +95,7 @@ cage_peak_HMEC_tbl<-tss_enh_tbl_build_fn(HMEC_enh_file,HMEC_tss_file)
 cage_peak_H1_tbl<-tss_enh_tbl_build_fn(H1_enh_file,H1_tss_file)
 
 cage_peak_GM12878_tbl<-tss_enh_tbl_build_fn(GM12878_enh_file,GM12878_tss_file)
+
+save(cage_peak_HMEC_tbl,file="./data/CAGE_union_coord_HMEC_tbl")
+save(cage_peak_H1_tbl,file="./data/CAGE_union_coord_H1_tbl")
+save(cage_peak_GM12878_tbl,file="./data/CAGE_union_coord_GM12878_tbl")
