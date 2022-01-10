@@ -33,6 +33,21 @@ cage_tbl_coord_build_fn<-function(cage_tbl,ID_col){
   
 }
 
+tss_enh_tbl_build_fn<-function(enh_file,tss_file){
+  enh_tbl<-get(base::load(enh_file))
+  tmp_obj<-names(mget(base::load(enh_file)))
+  rm(list=tmp_obj)
+  rm(tmp_obj)
+  
+  tss_tbl<-get(base::load(tss_file))
+  tmp_obj<-names(mget(base::load(tss_file)))
+  rm(list=tmp_obj)
+  rm(tmp_obj)
+  return(tss_tbl %>% filter(!is.na(start)) %>% dplyr::select(Id,chr,start,end) %>% 
+           bind_rows(.,enh_tbl %>% dplyr::select(Id,chr,start,end)))
+  
+}
+
 #---------------------------------------------------------------------------
 
 # Identify the set of samples coinciding with the desired cell-type
@@ -65,4 +80,18 @@ save(cage_enh_HMEC_tbl,file="~/Documents/multires_bhicect/data/epi_data/HMEC/CAG
 save(cage_enh_H1_tbl,file="~/Documents/multires_bhicect/data/epi_data/H1/CAGE/CAGE_enh_tbl.Rda")
 save(cage_enh_GM12878_tbl,file="~/Documents/multires_bhicect/data/epi_data/GM12878/CAGE/CAGE_enh_tbl.Rda")
 
+# build union of TSS and Enh CAGE peak object
+HMEC_enh_file<-"~/Documents/multires_bhicect/data/epi_data/HMEC/CAGE/CAGE_enh_tbl.Rda"
+HMEC_tss_file<-"./data/CAGE_tss_coord_HMEC_tbl.Rda"
 
+H1_enh_file<-"~/Documents/multires_bhicect/data/epi_data/H1/CAGE/CAGE_enh_tbl.Rda"
+H1_tss_file<-"./data/CAGE_tss_coord_H1_tbl.Rda"
+
+GM12878_enh_file<-"~/Documents/multires_bhicect/data/epi_data/GM12878/CAGE/CAGE_enh_tbl.Rda"
+GM12878_tss_file<-"./data/CAGE_tss_coord_GM12878_tbl.Rda"
+
+cage_peak_HMEC_tbl<-tss_enh_tbl_build_fn(HMEC_enh_file,HMEC_tss_file)
+
+cage_peak_H1_tbl<-tss_enh_tbl_build_fn(H1_enh_file,H1_tss_file)
+
+cage_peak_GM12878_tbl<-tss_enh_tbl_build_fn(GM12878_enh_file,GM12878_tss_file)
