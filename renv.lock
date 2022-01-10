@@ -788,6 +788,17 @@
       "Hash": "36b67b5adf57b292923f5659f5f0c853",
       "Requirements": []
     },
+    "data.tree": {
+      "Package": "data.tree",
+      "Version": "1.0.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "c0ddced80c3f074cb39a7a781698f68a",
+      "Requirements": [
+        "R6",
+        "stringi"
+      ]
+    },
     "dbplyr": {
       "Package": "dbplyr",
       "Version": "2.1.1",
