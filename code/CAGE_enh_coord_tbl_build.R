@@ -3,12 +3,6 @@ library(tidyverse)
 library(vroom)
 library(parallel)
 
-# CAGE-peak annotation
-base::load("~/Documents/multires_bhicect/data/epi_data/CAGE/CAGE_tss_ann_smpl.Rda")
-# CAGE-peak for TSS with tpm normalisation
-cage<-vroom("~/Documents/multires_bhicect/data/epi_data/hg19.cage_peak_phase1and2combined_tpm_ann.osc.txt",comment = '#')
-## raw count TSS data
-cage_count<-vroom("~/Documents/multires_bhicect/data/epi_data/hg19.cage_peak_phase1and2combined_counts_ann.osc.txt",comment = '#')
 # CAGE-peak for enhancers
 cage_enh_tbl<-vroom("~/Documents/multires_bhicect/data/epi_data/human_permissive_enhancers_phase_1_and_2_expression_tpm_matrix.txt",comment = '#')
 
