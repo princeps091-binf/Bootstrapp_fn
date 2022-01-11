@@ -43,7 +43,7 @@ for (chromo in chr_set){
   print(chromo)
   chr_feature_Grange<-feature_Grange[seqnames(feature_Grange)==chromo]
   #Generate random CAGE coordinate
-  fn_folder<-paste0("~/Documents/multires_bhicect/data/epi_data/fn_BED/",chromo,"/")
+  fn_folder<-paste0(fn_repo,chromo,"/")
   fn_file<-grep('BED$',list.files(fn_folder),value = T)
   fn_bed_l<-lapply(fn_file,function(f){
     read_bed(paste0(fn_folder,f),n_fields = 4)
