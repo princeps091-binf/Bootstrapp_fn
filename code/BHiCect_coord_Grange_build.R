@@ -1,8 +1,4 @@
 # Produce Coordinate tables for BHiCect clusters
-renv::install("tidyverse")
-renv::install("bioc::GenomicRanges")
-renv::install("furrr")
-
 library(tidyverse)
 library(GenomicRanges)
 library(furrr)
@@ -12,7 +8,7 @@ res_num <- c(1e6,5e5,1e5,5e4,1e4,5e3)
 names(res_num)<-res_set
 #--------------------------------------------------------------------
 res_file<-"~/Documents/multires_bhicect/data/HMEC/spec_res/"
-out_folder<-"./data/BHiCect_GRange/"
+out_folder<-"./data/GRanges/BHiCect_Grange/HMEC/"
 
 chr_set<-unlist(lapply(strsplit(grep("chr",list.files(res_file),value=T),split="_"),'[',1))
 for (chromo in chr_set){
