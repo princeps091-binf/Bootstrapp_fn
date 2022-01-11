@@ -5,6 +5,7 @@ library(valr)
 library(parallel)
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 library(ChIPseeker)
+library(crayon)
 
 options(scipen = 999999999)
 res_set <- c('1Mb','500kb','100kb','50kb','10kb','5kb')
@@ -35,7 +36,7 @@ chr_res_l<-vector("list",length(chr_set))
 names(chr_res_l)<-chr_set
 
 for (chromo in chr_set){
-  print(chromo)
+  message(green(chromo))
   chr_feature_Grange<-feature_Grange[seqnames(feature_Grange)==chromo]
   #Generate random CAGE coordinate
   fn_folder<-paste0(fn_repo,chromo,"/")
@@ -46,11 +47,13 @@ for (chromo in chr_set){
   names(fn_bed_l)<-fn_file
   
   #Generate the random peak coordinates
+  message(green(chromo)," feature annotation")
+  
   library(TxDb.Hsapiens.UCSC.hg19.knownGene)
   library(ChIPseeker)
   txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
   seqlevels(txdb)  <- chromo
-  peakAnno <- annotatePeak(chr_feature_Grange, tssRegion=c(-3000, 3000),TxDb=txdb, annoDb="org.Hs.eg.db")
+  peakAnno <- annotatePeak(chr_feature_Grange, tssRegion=c(-3000, 3000),TxDb=txdb, annoDb="org.Hs.eg.db",verbose = F)
   
   rn_annotation<-sample(peakAnno@annoStat$Feature,size = length(chr_feature_Grange),prob = peakAnno@annoStat$Frequency/100,replace = T)
   #check number of peaks from that category
@@ -76,12 +79,16 @@ for (chromo in chr_set){
   
   
   #cl_chr_tbl<-cl_Grange_tbl %>% filter(chr==chromo)
+  message(green(chromo)," build GRangeList object")
+  
   cl_list<-GRangesList(cl_chr_tbl$GRange)  
   #table collecting the observed CAGE-peak coordinates
   cl_chr_tbl<-cl_chr_tbl%>%mutate(feature_n=countOverlaps(cl_list,chr_feature_Grange))%>% filter(feature_n>0)
   
   tmp_cage_tbl<-chr_feature_Grange %>% as_tibble %>% dplyr::select(seqnames,start,end)%>%dplyr::rename(chrom=seqnames)
   #Build random coord sets for each categories
+  message(green(chromo)," build random feature coordinates")
+  
   rn_fn_coord_l<-vector('list',length(n_vec))
   names(rn_fn_coord_l)<-names(n_vec)
   for(f in names(n_vec)){
@@ -154,6 +161,8 @@ for (chromo in chr_set){
   rm(rn_peak_coord_tbl_l)
   #----------------------------------------------------
   #Compute intersection with observed clusters
+  message(green(chromo)," compute empirical p-value")
+  
   cl<-makeCluster(5)
   clusterEvalQ(cl, {
     library(GenomicRanges)
