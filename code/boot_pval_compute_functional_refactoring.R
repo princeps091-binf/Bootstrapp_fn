@@ -1,4 +1,4 @@
-
+# Empirical p-value process re-factored as functions
 library(tidyverse)
 library(GenomicRanges)
 library(valr)
@@ -14,48 +14,7 @@ names(res_num)<-res_set
 
 #-----------------------------------------
 ## Utility functions
-
-#-----------------------------------------
-## Files with cluster, feature GRange objects
-cl_folder<-"./data/GRanges/BHiCect_Grange/HMEC/"
-cl_file<-"_BHiCect_cl.Rda"
-feature_file<-"./data/GRanges/CAGE_tss_HMEC_Grange.Rda"
-out_file<-"~/Documents/multires_bhicect/data/epi_data/HMEC/CAGE/CAGE_enh_emp_pval_tbl.Rda"
-## GRange for feature of interest
-feature_Grange<-get(load(feature_file))
-tmp_obj<-names(mget(load(feature_file)))
-rm(list=tmp_obj)
-rm(tmp_obj)
-
-hg19_coord <- read_delim("~/Documents/multires_bhicect/data/hg19.genome", 
-                         "\t", escape_double = FALSE, col_names = FALSE, 
-                         trim_ws = TRUE)
-names(hg19_coord)<-c("chrom","size")
-
-fn_repo<-"~/Documents/multires_bhicect/data/epi_data/fn_BED/"
-chr_set<-list.files(fn_repo)
-
-chr_res_l<-vector("list",length(chr_set))
-names(chr_res_l)<-chr_set
-
-for (chromo in chr_set){
-  message(green(chromo))
-  chr_feature_Grange<-feature_Grange[seqnames(feature_Grange)==chromo]
-  #Generate random CAGE coordinate
-  fn_folder<-paste0(fn_repo,chromo,"/")
-  fn_file<-grep('BED$',list.files(fn_folder),value = T)
-  fn_bed_l<-lapply(fn_file,function(f){
-    read_bed(paste0(fn_folder,f),n_fields = 3)
-  })
-  names(fn_bed_l)<-fn_file
-  
-  #Generate the random peak coordinates
-  message(green(chromo)," feature annotation")
-  
-  library(TxDb.Hsapiens.UCSC.hg19.knownGene)
-  library(ChIPseeker)
-  txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
-  seqlevels(txdb)  <- chromo
+feature_annotation_fn<-function(txdb,chr_feature_Grange,fn_file){
   peakAnno <- annotatePeak(chr_feature_Grange, tssRegion=c(-3000, 3000),TxDb=txdb, annoDb="org.Hs.eg.db",verbose = F)
   
   rn_annotation<-sample(peakAnno@annoStat$Feature,size = length(chr_feature_Grange),prob = peakAnno@annoStat$Frequency/100,replace = T)
@@ -71,26 +30,16 @@ for (chromo in chr_set){
   ninter<-length(grep("Inter",as.character(rn_annotation)))
   n_vec<-c(n3,n5,ndown,nexon,ninter,nintron,n1kb,n2kb,n3kb)
   names(n_vec)<-fn_file
-  rm(ChIPseekerEnv)
+  rm(ChIPseekerEnv,envir = globalenv())
   rm(n5,n3,nexon,nintron,n1kb,n2kb,n3kb,ndown,ninter)
   n_vec<-n_vec[n_vec>0]
-  #----------------------------------------------------
-  cl_chr_tbl<-get(load(paste0(cl_folder,chromo,cl_file)))
-  tmp_obj<-names(mget(load(paste0(cl_folder,chromo,cl_file))))
-  rm(list=tmp_obj)
-  rm(tmp_obj)
+  return(n_vec)
   
+}
+
+rn_feature_GRange_build_fn<-function(n_vec,fn_bed_l,hg19_coord,tmp_cage_tbl,fn_file){
   
-  #cl_chr_tbl<-cl_Grange_tbl %>% filter(chr==chromo)
-  message(green(chromo)," build GRangeList object")
-  
-  cl_list<-GRangesList(cl_chr_tbl$GRange)  
-  #table collecting the observed CAGE-peak coordinates
-  cl_chr_tbl<-cl_chr_tbl%>%mutate(feature_n=countOverlaps(cl_list,chr_feature_Grange))%>% filter(feature_n>0)
-  
-  tmp_cage_tbl<-chr_feature_Grange %>% as_tibble %>% dplyr::select(seqnames,start,end)%>%dplyr::rename(chrom=seqnames)
-  #Build random coord sets for each categories
-  message(green(chromo)," build random feature coordinates")
+  fn_env<-environment()
   
   rn_fn_coord_l<-vector('list',length(n_vec))
   names(rn_fn_coord_l)<-names(n_vec)
@@ -104,10 +53,10 @@ for (chromo in chr_set){
         library(valr)
         print("node ready")
       })
-      clusterExport(cl,c("f","tmp_n","fn_bed_l","tmp_cage_tbl","hg19_coord"))
+      clusterExport(cl,c("f","tmp_n","fn_bed_l","tmp_cage_tbl","hg19_coord"),envir = fn_env)
       
       rn_fn_coord_l[[f]]<-parLapply(cl,1:100,function(x){
-        rn_pol<-bed_shuffle(tmp_cage_tbl,genome = hg19_coord,excl = fn_bed_l[[f]],within = T,max_tries=1e3)%>%sample_n(tmp_n)
+        rn_pol<-bed_shuffle(tmp_cage_tbl,genome = hg19_coord,excl = fn_bed_l[[f]],within = T,max_tries=1e6)%>%sample_n(tmp_n)
         return(rn_pol)
       })
       stopCluster(cl)
@@ -121,9 +70,9 @@ for (chromo in chr_set){
         library(valr)
         print("node ready")
       })
-      clusterExport(cl,c("f","tmp_n","fn_bed_l","tmp_cage_tbl","hg19_coord"))
+      clusterExport(cl,c("f","tmp_n","fn_bed_l","tmp_cage_tbl","hg19_coord"),envir = fn_env)
       rn_fn_coord_l[[f]]<-parLapply(cl,1:100,function(x){
-        rn_pol<-valr::bed_shuffle(x = tmp_cage_tbl,genome = hg19_coord,incl = fn_bed_l[[f]],within=T,max_tries=1e3)%>%sample_n(tmp_n)
+        rn_pol<-valr::bed_shuffle(x = tmp_cage_tbl,genome = hg19_coord,incl = fn_bed_l[[f]],within=T,max_tries=1e6)%>%sample_n(tmp_n)
         return(rn_pol)
       })
       stopCluster(cl)
@@ -137,14 +86,14 @@ for (chromo in chr_set){
     library(dplyr)
     print("node ready")
   })
-  clusterExport(cl,c("rn_fn_coord_l"))
+  clusterExport(cl,c("rn_fn_coord_l"),envir = fn_env)
   
   rn_peak_coord_tbl_l<-parLapply(cl,1:10000,function(x){
     return(do.call(bind_rows,lapply(rn_fn_coord_l,function(f)f[[sample(1:length(f),1)]])))
   })
   stopCluster(cl)
   rm(cl)
-  
+  rm(rn_fn_coord_l,envir = fn_env)
   #Convert to Grange object
   cl<-makeCluster(5)
   clusterEvalQ(cl, {
@@ -161,9 +110,48 @@ for (chromo in chr_set){
   })
   stopCluster(cl)
   rm(cl)
-  rm(rn_peak_coord_tbl_l)
-  #----------------------------------------------------
-  #Compute intersection with observed clusters
+  rm(rn_peak_coord_tbl_l,envir = fn_env)
+  
+  return(rn_Grange_l)
+  
+}
+
+empirical_pval_compute_fn<-function(chromo,cl_folder,cl_file,feature_Grange,fn_repo,txdb,hg19_coord){
+  main_fn_env<-environment()
+  message(green(chromo))
+  
+  chr_feature_Grange<-feature_Grange[seqnames(feature_Grange)==chromo]
+  
+  fn_folder<-paste0(fn_repo,chromo,"/")
+  fn_file<-grep('BED$',list.files(fn_folder),value = T)
+  fn_bed_l<-lapply(fn_file,function(f){
+    read_bed(paste0(fn_folder,f),n_fields = 3)
+  })
+  names(fn_bed_l)<-fn_file
+  txdb_chr <- txdb
+  seqlevels(txdb_chr)  <- chromo
+  
+  message(green(chromo)," feature annotation")
+  
+  n_vec<-feature_annotation_fn(txdb_chr,chr_feature_Grange,fn_file)
+  
+  cl_chr_tbl<-get(load(paste0(cl_folder,chromo,cl_file)))
+  tmp_obj<-names(mget(load(paste0(cl_folder,chromo,cl_file))))
+  rm(list=tmp_obj)
+  rm(tmp_obj)
+  
+  message(green(chromo)," build GRangeList object")
+  
+  cl_list<-GRangesList(cl_chr_tbl$GRange)  
+  #table collecting the observed CAGE-peak coordinates
+  cl_chr_tbl<-cl_chr_tbl%>%mutate(feature_n=countOverlaps(cl_list,chr_feature_Grange))%>% filter(feature_n>0)
+  
+  tmp_cage_tbl<-chr_feature_Grange %>% as_tibble %>% dplyr::select(seqnames,start,end)%>%dplyr::rename(chrom=seqnames)
+  
+  message(green(chromo)," build random feature coordinates")
+  
+  rn_Grange_l<-rn_feature_GRange_build_fn(n_vec,fn_bed_l,hg19_coord,tmp_cage_tbl,fn_file)
+  
   message(green(chromo)," compute empirical p-value")
   
   cl<-makeCluster(5)
@@ -171,25 +159,43 @@ for (chromo in chr_set){
     library(GenomicRanges)
     print("node ready")
   })
-  clusterExport(cl,c("cl_list"))
+  clusterExport(cl,c("cl_list"),envir=main_fn_env)
   rn_pval_l<-parLapply(cl,rn_Grange_l,function(x){
     countOverlaps(cl_list,x)
   })
   stopCluster(cl)
   rm(cl)
   rm(rn_Grange_l)
+  
   rn_count_mat<-do.call(cbind,rn_pval_l)
   rm(rn_pval_l)
   cl_emp_pval<-unlist(lapply(1:nrow(cl_chr_tbl),function(x){
     (sum(rn_count_mat[x,]>=cl_chr_tbl$feature_n[x])+1)/(ncol(rn_count_mat)+1)
   }))
   
-  chr_res_l[[chromo]]<-cl_chr_tbl%>%mutate(emp.pval=cl_emp_pval)
-  rm(rn_count_mat,cl_emp_pval) 
-  
+  return(cl_chr_tbl%>%mutate(emp.pval=cl_emp_pval))
   
 }
 
-cl_emp_pval_tbl<-do.call(bind_rows,chr_res_l)
-#cl_emp_pval_tbl<-cl_emp_pval_tbl %>% mutate(FDR=p.adjust(emp.pval,method = 'fdr'))
-save(cl_emp_pval_tbl,file=out_file)
+#-----------------------------------------
+cl_folder<-"./data/GRanges/BHiCect_Grange/HMEC/"
+cl_file<-"_BHiCect_cl.Rda"
+feature_file<-"./data/GRanges/CAGE_enh_HMEC_Grange.Rda"
+
+feature_Grange<-get(load(feature_file))
+tmp_obj<-names(mget(load(feature_file)))
+rm(list=tmp_obj)
+rm(tmp_obj)
+
+hg19_coord <- read_delim("~/Documents/multires_bhicect/data/hg19.genome", 
+                         "\t", escape_double = FALSE, col_names = FALSE, 
+                         trim_ws = TRUE)
+names(hg19_coord)<-c("chrom","size")
+
+fn_repo<-"~/Documents/multires_bhicect/data/epi_data/fn_BED/"
+
+txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
+
+cl_chr_tbl<-empirical_pval_compute_fn(chromo,cl_folder,cl_file,feature_Grange,fn_repo,txdb,hg19_coord)
+
+seqlevels(txdb)<-seqlevels0(txdb)
