@@ -181,6 +181,7 @@ empirical_pval_compute_fn<-function(chromo,cl_folder,cl_file,feature_Grange,fn_r
 cl_folder<-"./data/GRanges/BHiCect_Grange/HMEC/"
 cl_file<-"_BHiCect_cl.Rda"
 feature_file<-"./data/GRanges/CAGE_enh_HMEC_Grange.Rda"
+out_file<-"./data/pval_tbl/CAGE_enh_HMEC_pval_tbl.Rda"
 
 feature_Grange<-get(load(feature_file))
 tmp_obj<-names(mget(load(feature_file)))
@@ -196,6 +197,9 @@ fn_repo<-"~/Documents/multires_bhicect/data/epi_data/fn_BED/"
 
 txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
 
-cl_chr_tbl<-empirical_pval_compute_fn(chromo,cl_folder,cl_file,feature_Grange,fn_repo,txdb,hg19_coord)
-
-seqlevels(txdb)<-seqlevels0(txdb)
+chr_set<-list.files(fn_repo)
+cl_chr_emp_pval_l<-lapply(chr_set,function(chromo){
+  cl_chr_tbl<-empirical_pval_compute_fn(chromo,cl_folder,cl_file,feature_Grange,fn_repo,txdb,hg19_coord)
+  seqlevels(txdb)<-seqlevels0(txdb)
+  return(cl_chr_tbl)
+})
