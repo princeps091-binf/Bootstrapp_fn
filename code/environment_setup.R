@@ -13,5 +13,7 @@ renv::install("bioc::GenomicRanges")
 renv::install("bioc::TxDb.Hsapiens.UCSC.hg19.knownGene")
 renv::install("bioc::ChIPseeker")
 renv::install("bioc::org.Hs.eg.db")
+renv::install("bioc::rtracklayer")
+
 
 renv::snapshot()

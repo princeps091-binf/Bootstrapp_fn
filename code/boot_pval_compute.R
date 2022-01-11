@@ -1,9 +1,4 @@
-renv::install("tidyverse")
-renv::install("bioc::GenomicRanges")
-renv::install("bioc::TxDb.Hsapiens.UCSC.hg19.knownGene")
-renv::install("bioc::ChIPseeker")
-renv::install("valr")
-renv::install("bioc::org.Hs.eg.db")
+
 library(tidyverse)
 library(GenomicRanges)
 library(valr)
@@ -18,10 +13,10 @@ names(res_num)<-res_set
 
 #-----------------------------------------
 ## Files with cluster, feature GRange objects
-cl_folder<-"./data/TAD_GRange/"
-cl_file<-"_TAD.Rda"
-feature_file<-"./data/CTCF_Grange.Rda"
-out_file<-"~/Documents/multires_bhicect/data/epi_data/HMEC/CTCF/ENCODE/TAD_emp_pval_tbl.Rda"
+cl_folder<-"./data/GRanges/BHiCect_Grange/HMEC/"
+cl_file<-"_BHiCect_cl.Rda"
+feature_file<-"./data/GRanges/CAGE_tss_HMEC_Grange.Rda"
+out_file<-"~/Documents/multires_bhicect/data/epi_data/HMEC/CAGE/CAGE_enh_emp_pval_tbl.Rda"
 ## GRange for feature of interest
 feature_Grange<-get(load(feature_file))
 tmp_obj<-names(mget(load(feature_file)))
@@ -46,7 +41,7 @@ for (chromo in chr_set){
   fn_folder<-paste0(fn_repo,chromo,"/")
   fn_file<-grep('BED$',list.files(fn_folder),value = T)
   fn_bed_l<-lapply(fn_file,function(f){
-    read_bed(paste0(fn_folder,f),n_fields = 4)
+    read_bed(paste0(fn_folder,f),n_fields = 3)
   })
   names(fn_bed_l)<-fn_file
   
@@ -90,9 +85,8 @@ for (chromo in chr_set){
   rn_fn_coord_l<-vector('list',length(n_vec))
   names(rn_fn_coord_l)<-names(n_vec)
   for(f in names(n_vec)){
-    
+    # 
     tmp_n<-n_vec[f]
-
     if(f==fn_file[5]){
       cl<-makeCluster(5)
       clusterEvalQ(cl, {
@@ -103,7 +97,7 @@ for (chromo in chr_set){
       clusterExport(cl,c("f","tmp_n","fn_bed_l","tmp_cage_tbl","hg19_coord"))
       
       rn_fn_coord_l[[f]]<-parLapply(cl,1:100,function(x){
-        rn_pol<-bed_shuffle(tmp_cage_tbl,genome = hg19_coord,excl = fn_bed_l[[f]],within = T,max_tries=1e6)%>%sample_n(tmp_n)
+        rn_pol<-bed_shuffle(tmp_cage_tbl,genome = hg19_coord,excl = fn_bed_l[[f]],within = T,max_tries=1e3)%>%sample_n(tmp_n)
         return(rn_pol)
       })
       stopCluster(cl)
@@ -119,7 +113,7 @@ for (chromo in chr_set){
       })
       clusterExport(cl,c("f","tmp_n","fn_bed_l","tmp_cage_tbl","hg19_coord"))
       rn_fn_coord_l[[f]]<-parLapply(cl,1:100,function(x){
-        rn_pol<-valr::bed_shuffle(x = tmp_cage_tbl,genome = hg19_coord,incl = fn_bed_l[[f]],within = T,max_tries=1e6)%>%sample_n(tmp_n)
+        rn_pol<-valr::bed_shuffle(x = tmp_cage_tbl,genome = hg19_coord,incl = fn_bed_l[[f]],within=T,max_tries=1e3)%>%sample_n(tmp_n)
         return(rn_pol)
       })
       stopCluster(cl)
@@ -185,5 +179,5 @@ for (chromo in chr_set){
 }
 
 cl_emp_pval_tbl<-do.call(bind_rows,chr_res_l)
-cl_emp_pval_tbl<-cl_emp_pval_tbl %>% mutate(FDR=p.adjust(emp.pval,method = 'fdr'))
+#cl_emp_pval_tbl<-cl_emp_pval_tbl %>% mutate(FDR=p.adjust(emp.pval,method = 'fdr'))
 save(cl_emp_pval_tbl,file=out_file)

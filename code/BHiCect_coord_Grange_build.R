@@ -7,8 +7,8 @@ res_set <- c('1Mb','500kb','100kb','50kb','10kb','5kb')
 res_num <- c(1e6,5e5,1e5,5e4,1e4,5e3)
 names(res_num)<-res_set
 #--------------------------------------------------------------------
-res_file<-"~/Documents/multires_bhicect/data/HMEC/spec_res/"
-out_folder<-"./data/GRanges/BHiCect_Grange/HMEC/"
+res_file<-"~/Documents/multires_bhicect/data/GM12878/spec_res/"
+out_folder<-"./data/GRanges/BHiCect_Grange/GM12878/"
 
 chr_set<-unlist(lapply(strsplit(grep("chr",list.files(res_file),value=T),split="_"),'[',1))
 for (chromo in chr_set){
