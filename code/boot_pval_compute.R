@@ -95,7 +95,7 @@ for (chromo in chr_set){
   rn_fn_coord_l<-vector('list',length(n_vec))
   names(rn_fn_coord_l)<-names(n_vec)
   for(f in names(n_vec)){
-    cat(f)
+    message(f)
     tmp_n<-n_vec[f]
     if(f==fn_file[5]){
       cl<-makeCluster(5)
@@ -107,7 +107,7 @@ for (chromo in chr_set){
       clusterExport(cl,c("f","tmp_n","fn_bed_l","tmp_cage_tbl","hg19_coord"))
       
       rn_fn_coord_l[[f]]<-parLapply(cl,1:100,function(x){
-        rn_pol<-bed_shuffle(tmp_cage_tbl,genome = hg19_coord,excl = fn_bed_l[[f]],within = T,max_tries=1e3)%>%sample_n(tmp_n)
+        rn_pol<-valr::bed_shuffle(x = tmp_cage_tbl%>%sample_n(tmp_n),genome = hg19_coord,excl = fn_bed_l[[f]],within = T,max_tries=1e6)
         return(rn_pol)
       })
       stopCluster(cl)
@@ -123,11 +123,12 @@ for (chromo in chr_set){
       })
       clusterExport(cl,c("f","tmp_n","fn_bed_l","tmp_cage_tbl","hg19_coord"))
       rn_fn_coord_l[[f]]<-parLapply(cl,1:100,function(x){
-        rn_pol<-valr::bed_shuffle(x = tmp_cage_tbl,genome = hg19_coord,incl = fn_bed_l[[f]],within=T,max_tries=1e3)%>%sample_n(tmp_n)
+        rn_pol<-try(valr::bed_shuffle(x = tmp_cage_tbl%>%sample_n(tmp_n),genome = hg19_coord,incl = fn_bed_l[[f]],within=T,max_tries=1e6),silent=T)
         return(rn_pol)
       })
       stopCluster(cl)
       rm(cl)
+      rn_fn_coord_l[[f]]<-rn_fn_coord_l[[f]][!(unlist(lapply(rn_fn_coord_l[[f]],function(x)any(class(x) %in% "try-error"))))]
     }
   }
   
