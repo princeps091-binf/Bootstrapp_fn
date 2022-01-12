@@ -9,6 +9,7 @@ renv::install("parallel")
 renv::install("data.tree")
 renv::install("igraph")
 renv::install("crayon")
+renv::install("bedr")
 
 renv::install("bioc::GenomicRanges")
 renv::install("bioc::TxDb.Hsapiens.UCSC.hg19.knownGene")
