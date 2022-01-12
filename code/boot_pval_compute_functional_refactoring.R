@@ -56,7 +56,7 @@ rn_feature_GRange_build_fn<-function(n_vec,fn_bed_l,hg19_coord,tmp_cage_tbl,fn_f
       clusterExport(cl,c("f","tmp_n","fn_bed_l","tmp_cage_tbl","hg19_coord"),envir = fn_env)
       
       rn_fn_coord_l[[f]]<-parLapply(cl,1:100,function(x){
-        rn_pol<-bed_shuffle(tmp_cage_tbl,genome = hg19_coord,excl = fn_bed_l[[f]],within = T,max_tries=1e6)%>%sample_n(tmp_n)
+        rn_pol<-bed_shuffle(tmp_cage_tbl,genome = hg19_coord,excl = fn_bed_l[[f]],within = T,max_tries=1e9)%>%sample_n(tmp_n)
         return(rn_pol)
       })
       stopCluster(cl)
@@ -72,7 +72,7 @@ rn_feature_GRange_build_fn<-function(n_vec,fn_bed_l,hg19_coord,tmp_cage_tbl,fn_f
       })
       clusterExport(cl,c("f","tmp_n","fn_bed_l","tmp_cage_tbl","hg19_coord"),envir = fn_env)
       rn_fn_coord_l[[f]]<-parLapply(cl,1:100,function(x){
-        rn_pol<-valr::bed_shuffle(x = tmp_cage_tbl,genome = hg19_coord,incl = fn_bed_l[[f]],within=T,max_tries=1e6)%>%sample_n(tmp_n)
+        rn_pol<-valr::bed_shuffle(x = tmp_cage_tbl,genome = hg19_coord,incl = fn_bed_l[[f]],within=T,max_tries=1e9)%>%sample_n(tmp_n)
         return(rn_pol)
       })
       stopCluster(cl)

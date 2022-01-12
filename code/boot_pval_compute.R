@@ -19,7 +19,7 @@ names(res_num)<-res_set
 ## Files with cluster, feature GRange objects
 cl_folder<-"./data/GRanges/BHiCect_Grange/HMEC/"
 cl_file<-"_BHiCect_cl.Rda"
-feature_file<-"./data/GRanges/CAGE_tss_HMEC_Grange.Rda"
+feature_file<-"./data/GRanges/CAGE_enh_HMEC_Grange.Rda"
 out_file<-"~/Documents/multires_bhicect/data/epi_data/HMEC/CAGE/CAGE_enh_emp_pval_tbl.Rda"
 ## GRange for feature of interest
 feature_Grange<-get(load(feature_file))
@@ -95,7 +95,7 @@ for (chromo in chr_set){
   rn_fn_coord_l<-vector('list',length(n_vec))
   names(rn_fn_coord_l)<-names(n_vec)
   for(f in names(n_vec)){
-    # 
+    cat(f)
     tmp_n<-n_vec[f]
     if(f==fn_file[5]){
       cl<-makeCluster(5)
