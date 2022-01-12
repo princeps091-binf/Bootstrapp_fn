@@ -72,11 +72,14 @@ rn_feature_GRange_build_fn<-function(n_vec,fn_bed_l,hg19_coord,tmp_cage_tbl,fn_f
       })
       clusterExport(cl,c("f","tmp_n","fn_bed_l","tmp_cage_tbl","hg19_coord"),envir = fn_env)
       rn_fn_coord_l[[f]]<-parLapply(cl,1:100,function(x){
+        # Try pattern to not abort at the shuffling step
+        ## Sampleing prior to shuffling ensures a greater likelihood of success
         rn_pol<-try(valr::bed_shuffle(x = tmp_cage_tbl%>%sample_n(tmp_n),genome = hg19_coord,incl = fn_bed_l[[f]],within=T,max_tries=1e6),silent=T)
         return(rn_pol)
       })
       stopCluster(cl)
       rm(cl)
+      # Collect the successful shuffling by eliminating the shuffles producing try-error objects
       rn_fn_coord_l[[f]]<-rn_fn_coord_l[[f]][!(unlist(lapply(rn_fn_coord_l[[f]],function(x)any(class(x) %in% "try-error"))))]
     }
   }
@@ -118,10 +121,13 @@ rn_feature_GRange_build_fn<-function(n_vec,fn_bed_l,hg19_coord,tmp_cage_tbl,fn_f
 }
 
 empirical_pval_compute_fn<-function(chromo,cl_folder,cl_file,feature_Grange,fn_repo,txdb,hg19_coord){
+
   main_fn_env<-environment()
-  message(green(chromo))
+  
   
   chr_feature_Grange<-feature_Grange[seqnames(feature_Grange)==chromo]
+  
+  cat(green(chromo), " Bootstrapping started \n")
   
   fn_folder<-paste0(fn_repo,chromo,"/")
   fn_file<-grep('BED$',list.files(fn_folder),value = T)
@@ -132,7 +138,7 @@ empirical_pval_compute_fn<-function(chromo,cl_folder,cl_file,feature_Grange,fn_r
   txdb_chr <- txdb
   seqlevels(txdb_chr)  <- chromo
   
-  message(green(chromo)," feature annotation")
+  cat(green(chromo)," feature annotation \n")
   
   n_vec<-feature_annotation_fn(txdb_chr,chr_feature_Grange,fn_file)
   
@@ -141,7 +147,7 @@ empirical_pval_compute_fn<-function(chromo,cl_folder,cl_file,feature_Grange,fn_r
   rm(list=tmp_obj)
   rm(tmp_obj)
   
-  message(green(chromo)," build GRangeList object")
+  cat(green(chromo)," build GRangeList object \n")
   
   cl_list<-GRangesList(cl_chr_tbl$GRange)  
   #table collecting the observed CAGE-peak coordinates
@@ -149,11 +155,11 @@ empirical_pval_compute_fn<-function(chromo,cl_folder,cl_file,feature_Grange,fn_r
   
   tmp_cage_tbl<-chr_feature_Grange %>% as_tibble %>% dplyr::select(seqnames,start,end)%>%dplyr::rename(chrom=seqnames)
   
-  message(green(chromo)," build random feature coordinates")
+  cat(green(chromo)," build random feature coordinates \n")
   
   rn_Grange_l<-rn_feature_GRange_build_fn(n_vec,fn_bed_l,hg19_coord,tmp_cage_tbl,fn_file)
   
-  message(green(chromo)," compute empirical p-value")
+  cat(green(chromo)," compute empirical p-value \n")
   
   cl<-makeCluster(5)
   clusterEvalQ(cl, {
