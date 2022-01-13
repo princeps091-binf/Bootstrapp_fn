@@ -149,9 +149,22 @@ empirical_pval_compute_fn<-function(chromo,cl_folder,cl_file,feature_Grange,fn_r
   
   cat(green(chromo)," build GRangeList object \n")
   
-  cl_list<-GRangesList(cl_chr_tbl$GRange)  
   #table collecting the observed CAGE-peak coordinates
-  cl_chr_tbl<-cl_chr_tbl%>%mutate(feature_n=countOverlaps(cl_list,chr_feature_Grange))%>% filter(feature_n>0)
+  cl<-makeCluster(5)
+  clusterEvalQ(cl, {
+    library(GenomicRanges)
+    print("node ready")
+  })
+  clusterExport(cl,c("chr_feature_Grange"),envir=main_fn_env)#
+  cl_inter_vec<-unlist(parLapply(cl,cl_chr_tbl$GRange,function(x){
+    sum(countOverlaps(x,chr_feature_Grange))
+  }))
+  stopCluster(cl)
+  rm(cl)
+  
+  cl_chr_tbl<-cl_chr_tbl%>%mutate(feature_n=cl_inter_vec)%>% filter(feature_n>0)
+  
+  cl_list<-GRangesList(cl_chr_tbl$GRange)  
   
   tmp_cage_tbl<-chr_feature_Grange %>% as_tibble %>% dplyr::select(seqnames,start,end)%>%dplyr::rename(chrom=seqnames)
   
@@ -187,8 +200,8 @@ empirical_pval_compute_fn<-function(chromo,cl_folder,cl_file,feature_Grange,fn_r
 #-----------------------------------------
 cl_folder<-"./data/GRanges/BHiCect_Grange/HMEC/"
 cl_file<-"_BHiCect_cl.Rda"
-feature_file<-"./data/GRanges/CAGE_enh_HMEC_Grange.Rda"
-out_file<-"./data/pval_tbl/CAGE_enh_HMEC_pval_tbl.Rda"
+feature_file<-"./data/GRanges/CAGE_tss_HMEC_Grange.Rda"
+out_file<-"./data/pval_tbl/CAGE_tss_HMEC_pval_tbl.Rda"
 
 feature_Grange<-get(load(feature_file))
 tmp_obj<-names(mget(load(feature_file)))
@@ -210,3 +223,7 @@ cl_chr_emp_pval_l<-lapply(chr_set,function(chromo){
   seqlevels(txdb)<-seqlevels0(txdb)
   return(cl_chr_tbl)
 })
+
+cl_chr_emp_pval_tbl<-do.call(bind_rows,cl_chr_emp_pval_l)
+
+save(cl_chr_emp_pval_tbl,file=out_file)
