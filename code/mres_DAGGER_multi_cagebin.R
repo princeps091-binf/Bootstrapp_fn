@@ -41,6 +41,7 @@ load("~/Documents/multires_bhicect/data/epi_data/GM12878/CAGE/CAGE_coord_tbl.Rda
 cage_coord_tbl<-cage_GM12878_a%>%filter(!(is.na(start)))
 res_file<-"~/Documents/multires_bhicect/data/GM12878/spec_res/"
 
+# select cluster with at least two CAGE-containing bins (trx aggregation/looping)
 cage_Grange<-   GRanges(seqnames=cage_coord_tbl$chr,
                             ranges = IRanges(start=cage_coord_tbl$start,
                                              end=cage_coord_tbl$end
@@ -72,19 +73,21 @@ alpha_seq<-0.01
 
 for(chromo in unique(cage_tss_pval_tbl$chr)){
   print(chromo)
-  
+  # Build the BHiCect tree
   load(paste0(res_file,chromo,"_spec_res.Rda"))
   chr_pval_tbl<-cage_tss_pval_tbl%>%filter(chr==chromo)
   chr_bpt<-FromListSimple(chr_spec_res$part_tree)
+  #collect leaves and ancestors
   tmp_leaves<-chr_bpt$Get('name',filterFun=isLeaf)
   node_ancestor<-chr_bpt$Get(function(x){x$Get('name',traversal='ancestor')})
   node_ancestor<-lapply(node_ancestor,'[',-1)
+  #build the cage-containing sub-tree
   cage_node<-unlist(chr_pval_tbl%>%dplyr::select(cl))
   cage_set<-unique(c(cage_node,unique(unlist(node_ancestor[cage_node])))) 
   Prune(chr_bpt, function(x) x$name %in% cage_set)
   p_node_ancestor<-chr_bpt$Get(function(x){x$Get('name',traversal='ancestor')})
   
-  #rebuild corresponding tree
+  #rebuild corresponding tree according to DAGGER
   node_dagger_children<-lapply(p_node_ancestor,'[',2)
   #eleminate Root node to "create" DAGGER leaves
   node_dagger_children<-node_dagger_children[-1]

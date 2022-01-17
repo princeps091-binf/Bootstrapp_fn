@@ -32,9 +32,11 @@ all_pval_tbl<-cl_union_tbl %>% select(-GRange) %>% full_join(.,cl_tss_tbl%>% sel
 
 all_pval_tbl %>% 
   mutate(res=fct_relevel(res,res_set)) %>% 
-  ggplot(.,aes(-log10(tss.pval),-log10(enh.pval)))+
-  geom_point(alpha=0.05)+
+  filter(uni.pval<=0.5) %>% 
+  ggplot(.,aes(-log10(tss.pval),-log10(uni.pval)))+
+  geom_point(alpha=0.1)+
   geom_smooth()+
+  # geom_density_2d_filled()+
   facet_wrap(res~.)
 
 all_pval_tbl %>% filter(enh.pval<=0.0001 & tss.pval<=0.0001) %>% 
