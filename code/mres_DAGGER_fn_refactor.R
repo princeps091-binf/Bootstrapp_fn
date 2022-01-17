@@ -12,7 +12,7 @@ res_num <- c(1e6,5e5,1e5,5e4,1e4,5e3)
 names(res_num)<-res_set
 #--------------------------
 # utils Fn.
-rej_fn<-function(nodes,lvl,num_rejected,alpha){
+rej_fn<-function(nodes,lvl,num_rejected,ms,ls,alpha){
   #pick node effective node and leaf number
   ms_d<-ms[nodes]
   ls_d<-ls[nodes]
@@ -127,6 +127,41 @@ produce_eff_n_and_l_fn<-function(dagger_leaf,node_pval,node_m_lvl_tbl){
   return(list(eff.node=ms,eff.leaf=ls))
 }
 
+compute_rejected_test_fn<-function(alpha,node_m_lvl_tbl,node_dagger_parent,ms,ls,chromo,tmp_res){
+  #vector recording the number of rejections at every depth
+  num_rejected = rep(0, 1 + max(node_m_lvl_tbl$m_lvl)) 
+  names(num_rejected)<-as.character(seq(0, max(node_m_lvl_tbl$m_lvl)))
+  #vector recording the actual nodes rejecting the null hypothesis
+  rejections<-rep(F,nrow(node_m_lvl_tbl))
+  names(rejections)<-node_m_lvl_tbl$node
+  #loop through increasing depth levels (starting from DAGGER-roots)
+  for (lvl in seq(1, max(node_m_lvl_tbl$m_lvl))){
+    #print(lvl)
+    nodes_depth_d <- unlist(node_m_lvl_tbl%>%filter(m_lvl==lvl)%>%dplyr::select(node)) 
+    
+    # Delete the nodes one of whose parents has not been rejected.
+    if ( lvl > 1){
+      
+      nodes_depth_d<-nodes_depth_d[unlist(lapply(nodes_depth_d,function(x){
+        all(node_dagger_parent[[x]] %in% names(which(rejections)))
+      }))]
+      if(any(is.na(node_pval[nodes_depth_d]))){
+        #further filter out the nodes for which we don't have p-values
+        nodes_depth_d<-names(which(!(is.na(node_pval[nodes_depth_d]))))
+        
+      }
+      
+    }
+    # Performs the rejection step at depth d.  
+    rejected_nodes_depth_d <- rej_fn(nodes_depth_d, lvl, num_rejected,ms,ls,alpha)
+    rejections[rejected_nodes_depth_d] <- T
+    num_rejected[as.character(lvl)] <- num_rejected[as.character(lvl-1)] + length(rejected_nodes_depth_d)
+    
+  }
+  return(tibble(chr=chromo,res=tmp_res,node=names(which(rejections)),FDR=alpha,emp.pval=node_pval[names(which(rejections))]))
+  
+}
+
 mres_DAGGER_fn<-function(chr_pval_tbl,chr_bpt,chromo,BHiCect_res_file,alpha_seq){
   
   # Build the BHiCect tree
@@ -191,7 +226,7 @@ mres_DAGGER_fn<-function(chr_pval_tbl,chr_bpt,chromo,BHiCect_res_file,alpha_seq)
     ms<-eff_quant[[1]]
     ls<-eff_quant[[2]]
     
-    
+    compute_rejected_test_fn(alpha,node_m_lvl_tbl,node_dagger_parent,ms,ls,chromo,tmp_res)
     
     }
 }
@@ -218,3 +253,4 @@ chr_pval_tbl<-feature_pval_tbl %>% filter(chr==chromo)
 
 chr_pval_tbl<-detect_inter_cage_cl_fn(chr_feature_coord_tbl,chr_feature_pval_tbl,res_num) %>% 
   filter(feature.bin>1)
+
