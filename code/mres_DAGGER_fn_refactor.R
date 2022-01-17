@@ -67,15 +67,97 @@ detect_inter_cage_cl_fn<-function(feature_coord_tbl,feature_pval_tbl,res_num){
 
 }
 
-mres_DAGGER_fn<-function(chr_pval_tbl,chr_bpt,alpha_seq){
+produce_depth_tbl_fn<-function(tmp_res,res_cage_set,g_bpt,node_dagger_children,p_node_ancestor){
+  # Produce CAGE-tree for each resolution
+  tmp_g<-induced_subgraph(g_bpt,res_cage_set)
+  tmp_g_comp<-components(tmp_g)
+  ## detect the DAGGER leaves
+  ### For each component detect top parent node and label it as leaf
+  #### DAGGER leaves are nodes who don't have any BPT-ancestors among the node at the considered resolution! 
+  dagger_leaf<-names(which(unlist(lapply(node_dagger_children[res_cage_set],function(x)sum(grepl(tmp_res,x))))<1))
   
+  dagger_roots<-res_cage_set[!(res_cage_set %in% unique(unlist(lapply(p_node_ancestor[res_cage_set],'[',-1))))]
+  #assign levels/depth to this node set
+  ## For each component, depth is the graph distance with the corresponding DAGGER-roots (BPT-leaves)
+  comp_set<-which(tmp_g_comp$csize > 1)
+  comp_tbl<-do.call(bind_rows,lapply(comp_set,function(x){
+    tmp_node<-names(which(tmp_g_comp$membership==x))
+    #not working
+    tmp_d<-distances(tmp_g,tmp_node[which(tmp_node %in% dagger_roots)],tmp_node,mode = 'in')
+    tmp_lvl<-apply(tmp_d,2,function(x)max(x[!(is.infinite(x))])+1)
+    tmp_lvl[names(which(apply(tmp_d,2,function(a)any(a==0))))]<-1
+    return(tibble(lvl=tmp_lvl,node=names(tmp_lvl),comp=x))
+  }))
+  gen_lvl<-max(comp_tbl$lvl)
+  if(is.infinite(gen_lvl)){gen_lvl<-1}
+  isl_set<-which(tmp_g_comp$csize == 1)
+  isl_tbl<-do.call(bind_rows,lapply(isl_set,function(x){
+    tmp_node<-names(which(tmp_g_comp$membership==x))
+    #not working
+    return(tibble(lvl=gen_lvl,node=tmp_node,comp=x))
+  }))
+  node_m_lvl_tbl<-comp_tbl%>%bind_rows(.,isl_tbl)%>%dplyr::rename(m_lvl=lvl)
+  return(node_m_lvl)
   
+}
+
+produce_m_and_l_vec_fn<-function(){
+  
+}
+mres_DAGGER_fn<-function(chr_pval_tbl,chr_bpt,chromo,BHiCect_res_file,alpha_seq){
+  
+  # Build the BHiCect tree
+  load(paste0(BHiCect_res_file,chromo,"_spec_res.Rda"))
+  chr_bpt<-FromListSimple(chr_spec_res$part_tree)
+  #collect leaves and ancestors
+  tmp_leaves<-chr_bpt$Get('name',filterFun=isLeaf)
+  node_ancestor<-chr_bpt$Get(function(x){x$Get('name',traversal='ancestor')})
+  node_ancestor<-lapply(node_ancestor,'[',-1)
+  #build the cage-containing sub-tree
+  cage_node<-unlist(chr_pval_tbl%>%dplyr::select(cl))
+  cage_set<-unique(c(cage_node,unique(unlist(node_ancestor[cage_node])))) 
+  Prune(chr_bpt, function(x) x$name %in% cage_set)
+  p_node_ancestor<-chr_bpt$Get(function(x){x$Get('name',traversal='ancestor')})
+  
+  #rebuild corresponding tree according to DAGGER
+  node_dagger_children<-lapply(p_node_ancestor,'[',2)
+  #eleminate Root node to "create" DAGGER leaves
+  node_dagger_children<-node_dagger_children[-1]
+  
+  node_dagger_children<-lapply(node_dagger_children,function(x){
+    if(x == "Root"){return(NULL)} else{
+      return(x)
+    }
+  })
+  #Create DAGGER-parent mapping (immediate BPT children of each node)
+  node_dagger_parent<-lapply(cage_set,function(x){
+    tmp<-names(which(unlist(node_dagger_children) == x))
+    return(unlist(lapply(strsplit(tmp,split="\\."),'[',1)))
+  })
+  names(node_dagger_parent)<-cage_set
+  
+  # Build igraph object for CAGE subtree
+  g_bpt<-as.igraph.Node(chr_bpt,directed = T,direction = 'climb')
+  
+  # Loop through each resolution to compute the DAGGER p-value correction
+  tmp_res_l<-vector('list',length(unique(chr_pval_tbl$res)))
+  names(tmp_res_l)<-unique(chr_pval_tbl$res)
+  for(tmp_res in unique(chr_pval_tbl$res)){
+    res_cage_node<-unlist(chr_pval_tbl%>%filter(res==tmp_res)%>%dplyr::select(cl))
+    res_cage_set<-unique(c(res_cage_node,grep(paste0(tmp_res),unique(unlist(node_ancestor[res_cage_node])),value=T))) 
+    if(length(res_cage_set)<2){
+      tmp_pval<-unlist(chr_pval_tbl%>%filter(cl%in%res_cage_set)%>%dplyr::select(emp.pval))
+      tmp_res_l[[tmp_res]]<-tibble(chr=chromo,res=tmp_res,node=res_cage_set,FDR=NA,emp.pval=tmp_pval)
+      next
+    }
+    
+    }
 }
 
 #--------------------------
 feature_coord_file<-"./data/CAGE_tss_coord_HMEC_tbl.Rda"
 feature_pval_file<-"./data/pval_tbl/CAGE_tss_HMEC_pval_tbl.Rda"
-chromo<-"chr22"
+BHiCect_res_file<-"~/Documents/multires_bhicect/data/HMEC/spec_res/"
 
 feature_coord_tbl<-get(load(feature_coord_file))
 tmp_obj<-names(mget(load(feature_coord_file)))
@@ -86,4 +168,11 @@ feature_pval_tbl<-get(load(feature_pval_file))
 tmp_obj<-names(mget(load(feature_pval_file)))
 rm(list=tmp_obj)
 rm(tmp_obj)
-detect_inter_cage_cl_fn(feature_coord_tbl %>% filter(!(is.na(start))),feature_pval_tbl,res_num)
+
+chromo<-"chr22"
+
+chr_feature_coord_tbl<-feature_coord_tbl %>% filter(chr==chromo)
+chr_pval_tbl<-feature_pval_tbl %>% filter(chr==chromo)
+
+chr_pval_tbl<-detect_inter_cage_cl_fn(chr_feature_coord_tbl,chr_feature_pval_tbl,res_num) %>% 
+  filter(feature.bin>1)
