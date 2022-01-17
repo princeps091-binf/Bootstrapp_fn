@@ -67,16 +67,10 @@ detect_inter_cage_cl_fn<-function(feature_coord_tbl,feature_pval_tbl,res_num){
 
 }
 
-produce_depth_tbl_fn<-function(tmp_res,res_cage_set,g_bpt,node_dagger_children,p_node_ancestor){
+produce_depth_tbl_fn<-function(res_cage_set,g_bpt,dagger_roots){
   # Produce CAGE-tree for each resolution
   tmp_g<-induced_subgraph(g_bpt,res_cage_set)
   tmp_g_comp<-components(tmp_g)
-  ## detect the DAGGER leaves
-  ### For each component detect top parent node and label it as leaf
-  #### DAGGER leaves are nodes who don't have any BPT-ancestors among the node at the considered resolution! 
-  dagger_leaf<-names(which(unlist(lapply(node_dagger_children[res_cage_set],function(x)sum(grepl(tmp_res,x))))<1))
-  
-  dagger_roots<-res_cage_set[!(res_cage_set %in% unique(unlist(lapply(p_node_ancestor[res_cage_set],'[',-1))))]
   #assign levels/depth to this node set
   ## For each component, depth is the graph distance with the corresponding DAGGER-roots (BPT-leaves)
   comp_set<-which(tmp_g_comp$csize > 1)
@@ -97,13 +91,42 @@ produce_depth_tbl_fn<-function(tmp_res,res_cage_set,g_bpt,node_dagger_children,p
     return(tibble(lvl=gen_lvl,node=tmp_node,comp=x))
   }))
   node_m_lvl_tbl<-comp_tbl%>%bind_rows(.,isl_tbl)%>%dplyr::rename(m_lvl=lvl)
-  return(node_m_lvl)
+  return(node_m_lvl_tbl)
   
 }
 
-produce_m_and_l_vec_fn<-function(){
+produce_eff_n_and_l_fn<-function(dagger_leaf,node_pval,node_m_lvl_tbl){
   
+  l<-length(dagger_leaf)
+  
+  #Compute recursively the effective number of leaves and nodes
+  ### Computation for effective leaf/node number is done from DAGGER-leaves to DAGGER-roots
+  ms<-rep(0,nrow(node_m_lvl_tbl))
+  names(ms)<-node_m_lvl_tbl$node
+  ls<-rep(0,nrow(node_m_lvl_tbl))
+  names(ls)<-node_m_lvl_tbl$node
+  #assign 1 to DAGGER-leaf clusters
+  ls[dagger_leaf]<-1
+  ms[dagger_leaf]<-1
+  #Loop through levels in decreasing DAGGER depth order (starting with DAGGER-leaves)
+  for(lvl in rev(sort(unique(node_m_lvl_tbl$m_lvl)))){
+    #print(lvl)
+    tmp_node<-unlist(node_m_lvl_tbl%>%filter(m_lvl==lvl)%>%dplyr::select(node))
+    tmp_leaves_idx<-which(tmp_node %in% dagger_leaf)
+    if(length(tmp_leaves_idx)>0){tmp_node<-tmp_node[-tmp_leaves_idx]}
+    if(length(tmp_node)<1){next}
+    for(p in tmp_node){
+      
+      ms[p]<-1+sum(ms[node_dagger_children[[p]]]/unlist(lapply(node_dagger_children[[p]],function(x)length(node_dagger_parent[[x]]))))
+      
+      
+      ls[p]<-sum(ls[node_dagger_children[[p]]]/unlist(lapply(node_dagger_children[[p]],function(x)length(node_dagger_parent[[x]]))))
+    }
+  }
+  
+  return(list(eff.node=ms,eff.leaf=ls))
 }
+
 mres_DAGGER_fn<-function(chr_pval_tbl,chr_bpt,chromo,BHiCect_res_file,alpha_seq){
   
   # Build the BHiCect tree
@@ -150,6 +173,25 @@ mres_DAGGER_fn<-function(chr_pval_tbl,chr_bpt,chromo,BHiCect_res_file,alpha_seq)
       tmp_res_l[[tmp_res]]<-tibble(chr=chromo,res=tmp_res,node=res_cage_set,FDR=NA,emp.pval=tmp_pval)
       next
     }
+    ## detect the DAGGER leaves
+    ### For each component detect top parent node and label it as leaf
+    #### DAGGER leaves are nodes who don't have any BPT-ancestors among the node at the considered resolution! 
+    dagger_leaf<-names(which(unlist(lapply(node_dagger_children[res_cage_set],function(x)sum(grepl(tmp_res,x))))<1))
+    
+    dagger_roots<-res_cage_set[!(res_cage_set %in% unique(unlist(lapply(p_node_ancestor[res_cage_set],'[',-1))))]
+    
+    node_m_lvl_tbl<-produce_depth_tbl_fn(res_cage_set,g_bpt,dagger_roots)
+    
+    #Build the node p-value mapping vector
+    node_pval<-unlist(chr_pval_tbl%>%filter(cl %in% res_cage_set)%>%dplyr::select(emp.pval))
+    names(node_pval)<-unlist(chr_pval_tbl%>%filter(cl %in% res_cage_set)%>%dplyr::select(cl))
+    
+    eff_quant<-produce_eff_n_and_l_fn(dagger_leaf,node_pval,node_m_lvl_tbl)
+    
+    ms<-eff_quant[[1]]
+    ls<-eff_quant[[2]]
+    
+    
     
     }
 }
