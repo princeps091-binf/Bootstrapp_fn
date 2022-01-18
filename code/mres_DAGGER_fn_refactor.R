@@ -12,7 +12,7 @@ res_num <- c(1e6,5e5,1e5,5e4,1e4,5e3)
 names(res_num)<-res_set
 #--------------------------
 # utils Fn.
-rej_fn<-function(nodes,lvl,num_rejected,ms,ls,alpha){
+rej_fn<-function(nodes,lvl,num_rejected,node_pval,ms,ls,l,alpha){
   #pick node effective node and leaf number
   ms_d<-ms[nodes]
   ls_d<-ls[nodes]
@@ -95,7 +95,7 @@ produce_depth_tbl_fn<-function(res_cage_set,g_bpt,dagger_roots){
   
 }
 
-produce_eff_n_and_l_fn<-function(dagger_leaf,node_pval,node_m_lvl_tbl){
+produce_eff_n_and_l_fn<-function(dagger_leaf,node_pval,node_m_lvl_tbl,node_dagger_children,node_dagger_parent){
   
   l<-length(dagger_leaf)
   
@@ -127,7 +127,7 @@ produce_eff_n_and_l_fn<-function(dagger_leaf,node_pval,node_m_lvl_tbl){
   return(list(eff.node=ms,eff.leaf=ls))
 }
 
-compute_rejected_test_fn<-function(alpha,node_m_lvl_tbl,node_dagger_parent,ms,ls,chromo,tmp_res){
+compute_rejected_test_fn<-function(alpha,node_m_lvl_tbl,node_dagger_parent,node_pval,ms,ls,l,chromo,tmp_res){
   #vector recording the number of rejections at every depth
   num_rejected = rep(0, 1 + max(node_m_lvl_tbl$m_lvl)) 
   names(num_rejected)<-as.character(seq(0, max(node_m_lvl_tbl$m_lvl)))
@@ -153,7 +153,7 @@ compute_rejected_test_fn<-function(alpha,node_m_lvl_tbl,node_dagger_parent,ms,ls
       
     }
     # Performs the rejection step at depth d.  
-    rejected_nodes_depth_d <- rej_fn(nodes_depth_d, lvl, num_rejected,ms,ls,alpha)
+    rejected_nodes_depth_d <- rej_fn(nodes_depth_d, lvl, num_rejected,node_pval,ms,ls,l,alpha)
     rejections[rejected_nodes_depth_d] <- T
     num_rejected[as.character(lvl)] <- num_rejected[as.character(lvl-1)] + length(rejected_nodes_depth_d)
     
@@ -162,7 +162,7 @@ compute_rejected_test_fn<-function(alpha,node_m_lvl_tbl,node_dagger_parent,ms,ls
   
 }
 
-mres_DAGGER_fn<-function(chr_pval_tbl,chr_bpt,chromo,BHiCect_res_file,alpha_seq){
+mres_DAGGER_fn<-function(chr_pval_tbl,chromo,BHiCect_res_file,alpha_seq){
   
   # Build the BHiCect tree
   load(paste0(BHiCect_res_file,chromo,"_spec_res.Rda"))
@@ -212,6 +212,7 @@ mres_DAGGER_fn<-function(chr_pval_tbl,chr_bpt,chromo,BHiCect_res_file,alpha_seq)
     ### For each component detect top parent node and label it as leaf
     #### DAGGER leaves are nodes who don't have any BPT-ancestors among the node at the considered resolution! 
     dagger_leaf<-names(which(unlist(lapply(node_dagger_children[res_cage_set],function(x)sum(grepl(tmp_res,x))))<1))
+    l<-length(dagger_leaf)
     
     dagger_roots<-res_cage_set[!(res_cage_set %in% unique(unlist(lapply(p_node_ancestor[res_cage_set],'[',-1))))]
     
@@ -221,14 +222,21 @@ mres_DAGGER_fn<-function(chr_pval_tbl,chr_bpt,chromo,BHiCect_res_file,alpha_seq)
     node_pval<-unlist(chr_pval_tbl%>%filter(cl %in% res_cage_set)%>%dplyr::select(emp.pval))
     names(node_pval)<-unlist(chr_pval_tbl%>%filter(cl %in% res_cage_set)%>%dplyr::select(cl))
     
-    eff_quant<-produce_eff_n_and_l_fn(dagger_leaf,node_pval,node_m_lvl_tbl)
+    eff_quant<-produce_eff_n_and_l_fn(dagger_leaf,node_pval,node_m_lvl_tbl,node_dagger_children,node_dagger_parent)
     
     ms<-eff_quant[[1]]
     ls<-eff_quant[[2]]
+    alpha_res_l<-vector('list',length(alpha_seq))
+    names(alpha_res_l)<-as.character(alpha_seq)
     
-    compute_rejected_test_fn(alpha,node_m_lvl_tbl,node_dagger_parent,ms,ls,chromo,tmp_res)
-    
+    for ( alpha in alpha_seq){
+      
+      alpha_res_l[[as.character(alpha)]]<-compute_rejected_test_fn(alpha,node_m_lvl_tbl,node_dagger_parent,node_pval,ms,ls,l,chromo,tmp_res)
     }
+    tmp_res_l[[tmp_res]]<-do.call(bind_rows,alpha_res_l)
+  }
+  
+  return(do.call(bind_rows,tmp_res_l))
 }
 
 #--------------------------
@@ -251,6 +259,8 @@ chromo<-"chr22"
 chr_feature_coord_tbl<-feature_coord_tbl %>% filter(chr==chromo)
 chr_pval_tbl<-feature_pval_tbl %>% filter(chr==chromo)
 
-chr_pval_tbl<-detect_inter_cage_cl_fn(chr_feature_coord_tbl,chr_feature_pval_tbl,res_num) %>% 
+chr_pval_tbl<-detect_inter_cage_cl_fn(chr_feature_coord_tbl,chr_pval_tbl,res_num) %>% 
   filter(feature.bin>1)
+alpha_seq<-c(0.01)
 
+mres_DAGGER_fn(chr_pval_tbl,chromo,BHiCect_res_file,alpha_seq)
