@@ -6,6 +6,7 @@ library(igraph)
 #--------------------------
 library(GenomicRanges)
 library(parallel)
+library(crayon)
 options(scipen = 999999999)
 res_set <- c('1Mb','500kb','100kb','50kb','10kb','5kb')
 res_num <- c(1e6,5e5,1e5,5e4,1e4,5e3)
@@ -163,11 +164,13 @@ compute_rejected_test_fn<-function(alpha,node_m_lvl_tbl,node_dagger_parent,node_
 }
 
 mres_DAGGER_fn<-function(chr_pval_tbl,chromo,BHiCect_res_file,alpha_seq){
-  
+  cat(green(chromo), ": DAGGER initialised \n")
   # Build the BHiCect tree
   load(paste0(BHiCect_res_file,chromo,"_spec_res.Rda"))
+  cat(green(chromo), ": Build tree \n")
   chr_bpt<-FromListSimple(chr_spec_res$part_tree)
   #collect leaves and ancestors
+  cat(green(chromo), ": Collect children/parent nodes \n")
   tmp_leaves<-chr_bpt$Get('name',filterFun=isLeaf)
   node_ancestor<-chr_bpt$Get(function(x){x$Get('name',traversal='ancestor')})
   node_ancestor<-lapply(node_ancestor,'[',-1)
@@ -201,6 +204,7 @@ mres_DAGGER_fn<-function(chr_pval_tbl,chromo,BHiCect_res_file,alpha_seq){
   tmp_res_l<-vector('list',length(unique(chr_pval_tbl$res)))
   names(tmp_res_l)<-unique(chr_pval_tbl$res)
   for(tmp_res in unique(chr_pval_tbl$res)){
+    cat(green(chromo), " DAGGER at ", tmp_res, " \n")
     res_cage_node<-unlist(chr_pval_tbl%>%filter(res==tmp_res)%>%dplyr::select(cl))
     res_cage_set<-unique(c(res_cage_node,grep(paste0(tmp_res),unique(unlist(node_ancestor[res_cage_node])),value=T))) 
     if(length(res_cage_set)<2){
@@ -240,9 +244,11 @@ mres_DAGGER_fn<-function(chr_pval_tbl,chromo,BHiCect_res_file,alpha_seq){
 }
 
 #--------------------------
-feature_coord_file<-"./data/CAGE_tss_coord_HMEC_tbl.Rda"
-feature_pval_file<-"./data/pval_tbl/CAGE_tss_HMEC_pval_tbl.Rda"
+feature_coord_file<-"~/Documents/multires_bhicect/data/epi_data/HMEC/CAGE/CAGE_enh_coord_tbl.Rda"
+feature_pval_file<-"./data/pval_tbl/CAGE_enh_HMEC_pval_tbl.Rda"
 BHiCect_res_file<-"~/Documents/multires_bhicect/data/HMEC/spec_res/"
+
+out_file<-"./data/DAGGER_tbl/HMEC_enh_dagger_tbl.Rda"
 
 feature_coord_tbl<-get(load(feature_coord_file))
 tmp_obj<-names(mget(load(feature_coord_file)))
@@ -253,14 +259,17 @@ feature_pval_tbl<-get(load(feature_pval_file))
 tmp_obj<-names(mget(load(feature_pval_file)))
 rm(list=tmp_obj)
 rm(tmp_obj)
-
-chromo<-"chr22"
-
-chr_feature_coord_tbl<-feature_coord_tbl %>% filter(chr==chromo)
-chr_pval_tbl<-feature_pval_tbl %>% filter(chr==chromo)
-
-chr_pval_tbl<-detect_inter_cage_cl_fn(chr_feature_coord_tbl,chr_pval_tbl,res_num) %>% 
-  filter(feature.bin>1)
-alpha_seq<-c(0.01)
-
-mres_DAGGER_fn(chr_pval_tbl,chromo,BHiCect_res_file,alpha_seq)
+chr_set<-unique(feature_pval_tbl$chr)
+dagger_mres_l<-lapply(chr_set,function(chromo){
+  chr_feature_coord_tbl<-feature_coord_tbl %>% filter(chr==chromo)
+  chr_pval_tbl<-feature_pval_tbl %>% filter(chr==chromo)
+  cat(green(chromo), ": select clusters with two feature-containing bins \n")
+  chr_pval_tbl<-detect_inter_cage_cl_fn(chr_feature_coord_tbl,chr_pval_tbl,res_num) %>% 
+    filter(feature.bin>1)
+  alpha_seq<-c(0.01)
+  
+  return(mres_DAGGER_fn(chr_pval_tbl,chromo,BHiCect_res_file,alpha_seq))
+  
+})
+dagger_mres_tbl<-do.call(bind_rows,dagger_mres_l)
+save(dagger_mres_tbl,file=out_file)
