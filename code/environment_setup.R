@@ -10,6 +10,8 @@ renv::install("data.tree")
 renv::install("igraph")
 renv::install("crayon")
 renv::install("bedr")
+renv::install("UpSetR")
+renv::install("svglite")
 
 renv::install("bioc::GenomicRanges")
 renv::install("bioc::TxDb.Hsapiens.UCSC.hg19.knownGene")
