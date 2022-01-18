@@ -33,39 +33,45 @@ rej_fn<-function(nodes,lvl,num_rejected,alpha){
   return(tmp_rejected)
 }
 
+detect_inter_cage_cl_fn<-function(feature_coord_tbl,feature_pval_tbl,res_num){
+  
+  fn_env<-environment()
+  
+  feature_Grange<-   GRanges(seqnames=feature_coord_tbl$chr,
+                             ranges = IRanges(start=feature_coord_tbl$start,
+                                              end=feature_coord_tbl$end
+                             ))
+  
+  cl<-makeCluster(5)
+  clusterEvalQ(cl, {
+    library(GenomicRanges)
+    library(dplyr)
+    print("node ready")
+  })
+  clusterExport(cl,c("feature_pval_tbl","feature_Grange","res_num"),envir = fn_env)
+  feature_bin_n_l<-parLapply(cl,1:nrow(feature_pval_tbl),function(x){
+    cl_Grange<-   GRanges(seqnames=feature_pval_tbl$chr[x],
+                          ranges = IRanges(start=as.numeric(feature_pval_tbl$bins[[x]]),
+                                           end=as.numeric(feature_pval_tbl$bins[[x]]) + res_num[feature_pval_tbl$res[x]]-1
+                          ))
+    return(length(unique(queryHits(findOverlaps(cl_Grange,feature_Grange)))))
+    
+  })
+  stopCluster(cl)
+  rm(cl)
+  feature_pval_tbl<-feature_pval_tbl %>% mutate(feature.bin=unlist(feature_bin_n_l))
+  return(feature_pval_tbl)
+  
+}
+
 #--------------------------
 #load("~/Documents/multires_bhicect/data/epi_data/HMEC/CAGE/cl_emp_pval_tbl.Rda")
-load("~/Documents/multires_bhicect/data/epi_data/GM12878/CAGE/CAGE_pval_peak_shuffle_tbl.Rda")
-cage_tss_pval_tbl<-cl_emp_pval_tbl
-load("~/Documents/multires_bhicect/data/epi_data/GM12878/CAGE/CAGE_coord_tbl.Rda")
-cage_coord_tbl<-cage_GM12878_a%>%filter(!(is.na(start)))
-res_file<-"~/Documents/multires_bhicect/data/GM12878/spec_res/"
+load("./data/pval_tbl/CAGE_tss_HMEC_pval_tbl.Rda")
+cage_tss_pval_tbl<-cl_chr_emp_pval_tbl
+load("./data/CAGE_tss_coord_HMEC_tbl.Rda")
+cage_coord_tbl<-cage_tss_HMEC_tbl%>%filter(!(is.na(start)))
+res_file<-"~/Documents/multires_bhicect/data/HMEC/spec_res/"
 
-# select cluster with at least two CAGE-containing bins (trx aggregation/looping)
-cage_Grange<-   GRanges(seqnames=cage_coord_tbl$chr,
-                            ranges = IRanges(start=cage_coord_tbl$start,
-                                             end=cage_coord_tbl$end
-                            ))
-
-cl<-makeCluster(5)
-clusterEvalQ(cl, {
-  library(GenomicRanges)
-  library(dplyr)
-  print("node ready")
-})
-clusterExport(cl,c("cage_tss_pval_tbl","cage_Grange","res_num"))
-cage_bin_n_l<-parLapply(cl,1:nrow(cage_tss_pval_tbl),function(x){
-  cl_Grange<-   GRanges(seqnames=cage_tss_pval_tbl$chr[x],
-                        ranges = IRanges(start=cage_tss_pval_tbl$bins[[x]],
-                                         end=cage_tss_pval_tbl$bins[[x]] + res_num[cage_tss_pval_tbl$res[x]]-1
-                        ))
-  return(length(unique(queryHits(findOverlaps(cl_Grange,cage_Grange)))))
-  
-})
-stopCluster(cl)
-rm(cl)
-cage_tss_pval_tbl<-cage_tss_pval_tbl %>% mutate(cage.bin=unlist(cage_bin_n_l))
-cage_tss_pval_tbl<-cage_tss_pval_tbl %>% filter(cage.bin>1) %>%dplyr::rename(emp.pval=cl.emp.pval)
 
 chr_res_l<-vector('list',length(unique(cage_tss_pval_tbl$chr)))
 names(chr_res_l)<-unique(cage_tss_pval_tbl$chr)
@@ -75,7 +81,12 @@ for(chromo in unique(cage_tss_pval_tbl$chr)){
   print(chromo)
   # Build the BHiCect tree
   load(paste0(res_file,chromo,"_spec_res.Rda"))
-  chr_pval_tbl<-cage_tss_pval_tbl%>%filter(chr==chromo)
+
+  chr_pval_tbl<-cage_tss_pval_tbl %>% filter(chr==chromo)
+  # select cluster with at least two CAGE-containing bins (trx aggregation/looping)
+  chr_pval_tbl<-detect_inter_cage_cl_fn(cage_coord_tbl,chr_pval_tbl,res_num) %>% 
+    filter(feature.bin>1)
+  
   chr_bpt<-FromListSimple(chr_spec_res$part_tree)
   #collect leaves and ancestors
   tmp_leaves<-chr_bpt$Get('name',filterFun=isLeaf)
@@ -227,5 +238,9 @@ for(chromo in unique(cage_tss_pval_tbl$chr)){
 dagger_mres_tbl<-do.call(bind_rows,chr_res_l)
 dagger_mres_tbl%>%ggplot(.,aes(emp.pval))+geom_histogram()+facet_wrap(FDR~.,scales="free")
 dagger_mres_tbl<-dagger_mres_tbl%>%filter(!(is.na(FDR)))
-save(dagger_mres_tbl,file="~/Documents/multires_bhicect/data/epi_data/GM12878/CAGE/dagger_mres_fdr_01_multi_cagebin_tbl.Rda")
+save(dagger_mres_tbl,file="./data/DAGGER_tbl/HMEC_tss_dagger_tbl.Rda")
 
+dagger_mres_tbl2<-dagger_mres_tbl
+load("~/Documents/multires_bhicect/data/epi_data/HMEC/CAGE/dagger_mres_fdr_01_multi_cagebin_tbl.Rda")
+#Some level of discrepency -> need to evaluate consistency in gene-set enrichment
+dagger_mres_tbl2 %>% dplyr::select(chr,node) %>% left_join(.,dagger_mres_tbl%>% dplyr::select(chr,node,FDR)) %>% filter(is.na(FDR))
