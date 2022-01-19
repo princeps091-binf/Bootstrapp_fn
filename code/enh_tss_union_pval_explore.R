@@ -48,3 +48,9 @@ all_pval_tbl %>% filter(enh.pval<=0.0001 & tss.pval<=0.0001) %>%
 
 all_pval_tbl %>% filter(enh.pval<=0.0001 & tss.pval<=0.0001) %>% 
   filter(res=="5kb")  
+
+enh_file<-"./data/DAGGER_tbl/HMEC_enh_dagger_tbl.Rda"
+enh_dagger_tbl<-get(load(enh_file))
+tmp_obj<-names(mget(load(enh_file)))
+rm(list=tmp_obj)
+rm(tmp_obj)
