@@ -44,16 +44,26 @@ rm(list=tmp_obj)
 rm(tmp_obj)
 
 dat_file<-"~/Documents/multires_bhicect/data/HMEC/"
-
-cl_res<-"1Mb"
-chr_set<-unlist(lapply(strsplit(grep("chr",list.files(paste0(dat_file,"/",cl_res)),value=T),split="\\."),'[',1))
-
-res_tbl<-do.call(bind_rows,lapply(chr_set,function(chromo){
-  message(chromo)
-  chr_bin_GRange<-chr_bin_GRange_fn(dat_file,chromo,cl_res,res_num)
+cl_res_set<-names(sort(res_num[grep("b$",list.files(dat_file),value=T)]))
+res_l<-vector("list",length(cl_res_set))
+names(res_l)<-cl_res_set
+for(cl_res in cl_res_set){
+  message(cl_res)
+  chr_set<-unlist(lapply(strsplit(grep("chr",list.files(paste0(dat_file,"/",cl_res)),value=T),split="\\."),'[',1))
   
-  bin_count_tbl<-tibble(chr=chromo,res=cl_res,bin=start(chr_bin_GRange),enh.n=countOverlaps(chr_bin_GRange,enh_Grange),tss.n=countOverlaps(chr_bin_GRange,tss_Grange))
+  res_l[[cl_res]]<-do.call(bind_rows,lapply(chr_set,function(chromo){
+    message(chromo)
+    chr_bin_GRange<-chr_bin_GRange_fn(dat_file,chromo,cl_res,res_num)
+    
+    bin_count_tbl<-tibble(chr=chromo,res=cl_res,bin=start(chr_bin_GRange),enh.n=countOverlaps(chr_bin_GRange,enh_Grange),tss.n=countOverlaps(chr_bin_GRange,tss_Grange))
+    
+  }))
   
-}))
+  
+}
 
-res_tbl %>% ggplot(.,aes(enh.n,tss.n))+geom_point()+scale_y_log10()
+res_tbl <- do.call(bind_rows,res_l)
+gg_bin<-res_tbl %>% 
+  mutate(res=fct_relevel(res,names(res_num))) %>% 
+  ggplot(.,aes(enh.n,tss.n))+geom_point(alpha=0.1)+facet_wrap(res~.,scales = "free")
+ggsave("~/Documents/multires_bhicect/weeklies/weekly48/img/bin_enh_vs_tss.png",gg_bin)
