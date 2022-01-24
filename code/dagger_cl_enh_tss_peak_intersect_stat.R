@@ -97,8 +97,14 @@ length(unique(queryHits(findOverlaps(enh_GRange,enh_mres_dagger_GRange))))/lengt
 
 length(unique(queryHits(findOverlaps(tss_GRange,tss_mres_dagger_GRange))))/length(tss_GRange)
 
-length(unique(queryHits(findOverlaps(enh_GRange,tss_mres_dagger_GRange))))/length(tss_GRange)
+length(unique(queryHits(findOverlaps(enh_GRange,tss_mres_dagger_GRange))))/length(enh_GRange)
+
+length(unique(queryHits(findOverlaps(tss_GRange,enh_mres_dagger_GRange))))/length(tss_GRange)
 
 length(unique(queryHits(findOverlaps(enh_GRange,union_mres_dagger_GRange))))/length(enh_GRange)
 
 length(unique(queryHits(findOverlaps(tss_GRange,union_mres_dagger_GRange))))/length(tss_GRange)
+
+#-------
+
+# Resolution specific examination of the intersection
