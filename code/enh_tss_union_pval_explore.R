@@ -60,7 +60,7 @@ all_pval_tbl %>%
   mutate(tss.n=ifelse(is.na(tss.n),0,tss.n),enh.n=ifelse(is.na(enh.n),0,enh.n)) %>% 
   mutate(res=fct_relevel(res,res_set)) %>% 
   #  filter(uni.pval<=0.5) %>% 
-  ggplot(.,aes(tss.n,enh.n))+ #scale_x_log10()+ scale_y_log10()+
+  ggplot(.,aes(enh.n,tss.n))+ #scale_x_log10()+ scale_y_log10()+
   geom_point(alpha=0.2)+
 #  geom_smooth()+ 
   # geom_density_2d_filled()+
