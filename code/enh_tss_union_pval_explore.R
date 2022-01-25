@@ -56,7 +56,7 @@ rm(list=tmp_obj)
 rm(tmp_obj)
 
 
-cl_union_tbl %>% left_join(.,all_pval_tbl) %>% 
+cl_tss_tbl %>% left_join(.,all_pval_tbl) %>% 
   mutate(tss.n=ifelse(is.na(tss.n),0,tss.n),enh.n=ifelse(is.na(enh.n),0,enh.n)) %>% 
   mutate(res=fct_relevel(res,res_set)) %>% 
   #  filter(uni.pval<=0.5) %>% 
@@ -65,5 +65,5 @@ cl_union_tbl %>% left_join(.,all_pval_tbl) %>%
 #  geom_smooth()+ 
   # geom_density_2d_filled()+
   facet_wrap(res~.,scales="free")
-ggsave("~/Documents/multires_bhicect/weeklies/weekly48/img/tss_n_vs_enh_n.png")
+ggsave("~/Documents/multires_bhicect/weeklies/weekly48/img/tss_n_vs_enh_n_tsshub.png")
 
