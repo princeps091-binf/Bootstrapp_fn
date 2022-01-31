@@ -74,3 +74,14 @@ cl_union_tbl %>%
   group_by(res) %>% summarise(n=n()) %>% 
   mutate(res=fct_relevel(res,names(res_num))) %>% 
   ggplot(.,aes(res,n))+geom_bar(stat="identity")
+
+cl_union_tbl %>% mutate(foot=pmap_dbl(list(res,bins),function(res,bins){
+  res_num[res]*length(bins)
+}),
+span= map_dbl(bins,function(x){
+  diff(range(as.numeric(x)))
+}), res=fct_relevel(res,names(res_num))) %>% 
+  ggplot(.,aes(foot,span))+
+  geom_point(alpha=0.05)+
+#  geom_density_2d()+
+  facet_wrap(res~.,scales="free")
