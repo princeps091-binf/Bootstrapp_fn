@@ -67,3 +67,10 @@ cl_tss_tbl %>% left_join(.,all_pval_tbl) %>%
   facet_wrap(res~.,scales="free")
 ggsave("~/Documents/multires_bhicect/weeklies/weekly48/img/tss_n_vs_enh_n_tsshub.png")
 
+#-----------------------------------------
+## Examine distributional property of highlighted hubs
+
+cl_union_tbl %>% 
+  group_by(res) %>% summarise(n=n()) %>% 
+  mutate(res=fct_relevel(res,names(res_num))) %>% 
+  ggplot(.,aes(res,n))+geom_bar(stat="identity")
