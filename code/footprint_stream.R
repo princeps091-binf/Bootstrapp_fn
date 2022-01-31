@@ -56,6 +56,8 @@ gg_foot<-hmec_fdr_tbl%>%
 gg_foot<-gg_foot +theme(axis.title.y=element_blank(),
                         axis.text.y=element_blank(),
                         axis.ticks.y=element_blank(),
-                        legend.position="none")
+                        legend.position="none")+
+  scale_x_continuous(labels= label_number(scale = 1/1e6,suffix="Mb"))
+
 gg_foot
-ggsave("~/Documents/multires_bhicect/weeklies/weekly40/img/hmec_cl_FDR01_foot.png",width = 40,height = 23,units = "cm",gg_foot)
+ggsave("~/Documents/multires_bhicect/weeklies/IFI_meeting/img/hmec_hub_foot.png",width = 40,height = 23,units = "cm",gg_foot)
