@@ -198,10 +198,10 @@ empirical_pval_compute_fn<-function(chromo,cl_folder,cl_file,feature_Grange,fn_r
 }
 
 #-----------------------------------------
-cl_folder<-"./data/GRanges/BHiCect_Grange/HMEC/"
+cl_folder<-"./data/GRanges/BHiCect_Grange/GM12878/"
 cl_file<-"_BHiCect_cl.Rda"
-feature_file<-"./data/GRanges/CAGE_union_HMEC_Grange.Rda"
-out_file<-"./data/pval_tbl/CAGE_union_HMEC_pval_tbl.Rda"
+feature_file<-"./data/GRanges/CAGE_union_GM12878_Grange.Rda"
+out_file<-"./data/pval_tbl/CAGE_union_GM12878_pval_tbl.Rda"
 
 feature_Grange<-get(load(feature_file))
 tmp_obj<-names(mget(load(feature_file)))
