@@ -25,10 +25,10 @@ build_Grange<-function(tmp_tbl){
   
 }
 #-----------------------------------------
-union_file<-"./data/DAGGER_tbl/HMEC_union_dagger_tbl.Rda"
+union_file<-"./data/DAGGER_tbl/H1_union_dagger_tbl.Rda"
 peak_summary_file<-"~/Documents/multires_bhicect/Fantom5_CAGE_peak_content_analysis/data/CAGE_tss_cell_line_summary_tbl.Rda"
-HMEC_peak_file<-"./data/CAGE_tss_coord_HMEC_tbl.Rda"
-union_pval_file<-"./data/pval_tbl/CAGE_union_HMEC_pval_tbl.Rda"
+HMEC_peak_file<-"./data/CAGE_tss_coord_H1_tbl.Rda"
+union_pval_file<-"./data/pval_tbl/CAGE_union_H1_pval_tbl.Rda"
 
 
 dagger_hub_tbl<-input_data_fn(union_file)
@@ -43,12 +43,12 @@ mcols(peak_Grange)<-peak_summary_tbl %>% filter(peak.ID %in% HMEC_peak_summary_t
 plan(multisession, workers = 3)
 
 cl_tbl<-cl_tbl %>% 
-#  slice(1:5) %>% 
+#  dplyr::slice(1:5) %>% 
   mutate(enh.sum=future_map(GRange,function(x){
-  as_tibble(peak_Grange@elementMetadata) %>% slice(unique(queryHits(findOverlaps(peak_Grange,x))))
+  as_tibble(peak_Grange@elementMetadata) %>% dplyr::slice(unique(queryHits(findOverlaps(peak_Grange,x))))
 }))
 
-hub_enh_tbl<-dagger_hub_tbl %>% filter(res=="500kb") %>% 
+hub_enh_tbl<-dagger_hub_tbl %>% filter(res=="5kb") %>% 
   left_join(.,cl_tbl,by=c("node"="cl","chr"="chr","res"="res","emp.pval"="emp.pval")) %>% 
   select(enh.sum) %>% 
   as.list() %>% do.call(bind_rows,.) %>% 
