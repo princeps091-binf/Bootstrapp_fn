@@ -244,11 +244,11 @@ mres_DAGGER_fn<-function(chr_pval_tbl,chromo,BHiCect_res_file,alpha_seq){
 }
 
 #--------------------------
-feature_coord_file<-"./data/CAGE_union_coord_GM12878_tbl.Rda"
-feature_pval_file<-"./data/pval_tbl/CAGE_union_GM12878_pval_tbl.Rda"
-BHiCect_res_file<-"~/Documents/multires_bhicect/data/GM12878/spec_res/"
+feature_coord_file<-"./data/CAGE_union_coord_H1_tbl.Rda"
+feature_pval_file<-"./data/pval_tbl/CAGE_union_H1_pval_tbl.Rda"
+BHiCect_res_file<-"~/Documents/multires_bhicect/data/H1/Dekker/spec_res/"
 
-out_file<-"./data/DAGGER_tbl/GM12878_union_dagger_tbl.Rda"
+out_file<-"./data/DAGGER_tbl/H1_union_dagger_tbl.Rda"
 
 feature_coord_tbl<-get(load(feature_coord_file))
 tmp_obj<-names(mget(load(feature_coord_file)))
