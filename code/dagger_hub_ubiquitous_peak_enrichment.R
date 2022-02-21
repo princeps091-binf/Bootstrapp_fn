@@ -62,4 +62,4 @@ hub_enh_tbl %>% mutate(set="hub") %>%
               mutate(set="out")) %>% 
   ggplot(.,aes(n,color=set))+geom_density()+
   geom_density(data=peak_summary_tbl %>% filter(peak.ID %in% HMEC_peak_summary_tbl$Id) %>% mutate(set="all"),aes(n))
-ggsave("~/Documents/multires_bhicect/weeklies/weekly50/img/HMEC_500kb_hub_vs_out_tss_ubiquity.png")
+ggsave("~/Documents/multires_bhicect/weeklies/weekly51/img/H1_5kb_hub_vs_out_tss_ubiquity.png")
