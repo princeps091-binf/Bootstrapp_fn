@@ -85,7 +85,7 @@ top_hub_5kb %>%
   }))) 
 #-----------------------------------------------
 # Examine BPT distribution of DAGGER hubs
-chromo<-"chr1"
+chromo<-"chr19"
 tmp_res<-"5kb"
 tmp_hub_set<-dagger_hub_tbl %>% filter(chr==chromo & res==tmp_res)
 
@@ -101,7 +101,7 @@ Prune(chr_bpt, function(x) x$name %in% chr_hub_set)
 g<-graph_from_data_frame(ToDataFrameNetwork(chr_bpt))
 chr_hubs<-dagger_hub_tbl %>% filter(chr==chromo ) %>% distinct(node) %>% unlist
 V(g)$color<-ifelse(V(g)$name %in% chr_hubs,"red","grey50")
-plot(g,layout=layout_as_tree(g),vertex.size=2,vertex.label=NA,edge.arrow.width=0)
+plot(g,layout=layout_as_tree(g),vertex.size=2,vertex.label=NA,edge.arrow.size=0)
 
 compound_hubs<-unique(unlist(lapply(node_ancestor[tmp_hub_set$node],function(x){
   x[max(which(x %in% chr_hubs))]
