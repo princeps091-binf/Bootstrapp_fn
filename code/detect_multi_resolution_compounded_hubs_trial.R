@@ -107,4 +107,4 @@ compound_hubs<-unique(unlist(lapply(node_ancestor[tmp_hub_set$node],function(x){
   x[max(which(x %in% chr_hubs))]
 })))
 V(g)$color<-ifelse(V(g)$name %in% tmp_hub_set$node,"red",ifelse(V(g)$name %in% compound_hubs, "green",ifelse(V(g)$name %in% chr_hubs,"orange","grey50")))
-plot(g,layout=layout_as_tree(g),vertex.size=2,vertex.label=NA,edge.arrow.width=0)
+plot(g,layout=layout_as_tree(g),vertex.size=2,vertex.label=NA,edge.arrow.size=0)
