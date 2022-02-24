@@ -54,6 +54,13 @@ top_hub_tbl<-top_hub_tbl %>%
 top_hub_GRange<-GenomicRanges::reduce(top_hub_tbl %>% 
   filter(top_res %in% c("1Mb","500kb")) %>% dplyr::select(GRange) %>% unlist %>% GRangesList %>% unlist)
 
+hub_5kb_compound_GRange<-GenomicRanges::reduce(compound_mres_hub_tbl %>% 
+  filter(top_res %in% c("1Mb","500kb")) %>% 
+  dplyr::select(chr,hub_5kb) %>% 
+  left_join(.,pval_tbl %>% 
+              dplyr::select(chr,cl,GRange,emp.pval),by=c("chr"='chr','hub_5kb'="cl")) %>% 
+  dplyr::select(GRange) %>% unlist %>% GRangesList %>% unlist)
+
 lores_hub_GRange<-GenomicRanges::reduce(dagger_mres_hub_tbl %>% 
                                         filter(res %in% c("1Mb","500kb")) %>% 
                                         left_join(.,pval_tbl %>% 
@@ -72,3 +79,8 @@ tss_Grange[unique(subjectHits(findOverlaps(top_hub_GRange,tss_Grange)))]
 tss_Grange[unique(subjectHits(findOverlaps(lores_hub_GRange,tss_Grange)))]
 
 tss_Grange[unique(subjectHits(findOverlaps(hires_hub_GRange,tss_Grange)))]
+
+tss_Grange[unique(subjectHits(findOverlaps(hub_5kb_compound_GRange,tss_Grange)))]
+#-------------------------------
+
+
