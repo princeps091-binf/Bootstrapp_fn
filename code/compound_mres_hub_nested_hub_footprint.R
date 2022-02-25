@@ -105,6 +105,8 @@ for(chromo in unique(dagger_mres_hub_tbl$chr)){
 }
 compound_hub_tbl<-do.call(bind_rows,compound_hub_l)
 
+save(compound_hub_tbl,file="./data/HMEC_5kb_hub_ancestry.Rda")
+
 parent_hub_tbl<-compound_hub_tbl %>%
   filter(!(is.na(parent.hub))) %>% 
   distinct(chr,parent.hub)
@@ -124,6 +126,8 @@ for(chromo in chr_set){
 }
 
 parent_hub_content_tbl<-do.call(bind_rows,parent_hub_content_l)
+
+save(parent_hub_content_tbl,file="./data/HMEC_parent_hub_content.Rda")
 
 parent_hub_content_tbl %>% 
   group_by(chr,parent.hub) %>% 
@@ -154,4 +158,36 @@ test %>%
                                                  dplyr::select(GRange) %>% unlist))
     return(sum(width(child_GRange))/sum(width(parent_GRange)))
   })) %>% arrange(desc(hub.foot))
+
+full_hub_set_tbl<-parent_hub_content_tbl %>% 
+  group_by(chr) %>% 
+  summarise(hubs=unique(c(parent.hub,children.hub)))
+
+full_hub_GRange_tbl<-pval_tbl %>% dplyr::select(chr,cl,res,GRange) %>% 
+  inner_join(.,full_hub_set_tbl,by=c("chr"="chr","cl"="hubs"))
   
+tmp_tbl<-parent_hub_content_tbl  %>%
+  group_by(chr,parent.hub) %>% 
+  summarise(ch.hub=list(unique(children.hub))) %>% 
+  ungroup() 
+
+plan(multisession, workers = 5)
+
+tmp_tbl<-tmp_tbl %>%
+  mutate(hub.foot=future_pmap_dbl(list(chr,parent.hub,ch.hub),function(chromo,parent.hub,ch.hub){
+    parent_GRange<-unlist(GenomicRanges::reduce(full_hub_GRange_tbl %>% filter(chr==chromo & cl == parent.hub) %>% 
+                                                  dplyr::select(GRange) %>% unlist %>% GRangesList))
+    child_GRange<-GenomicRanges::reduce(Reduce(append,full_hub_GRange_tbl %>% filter(chr==chromo & cl%in% ch.hub ) %>% 
+                                                 dplyr::select(GRange) %>% unlist))
+    return(sum(width(child_GRange))/sum(width(parent_GRange)))
+  }))
+
+tmp_tbl %>% 
+  mutate(parent.res=map_chr(parent.hub,function(x){
+    
+    return(strsplit(x,split="_")[[1]][1])
+  })) %>%
+  mutate(parent.res=fct_relevel(parent.res,names(res_num))) %>% 
+  ggplot(.,aes(hub.foot))+
+  geom_density()+
+  facet_wrap(parent.res~.,scales="free")
