@@ -143,14 +143,14 @@ test<-parent_hub_content_tbl  %>%
     
     return(strsplit(x,split="_")[[1]][1])
   })) %>% 
-  filter(parent.res=="10kb") %>% 
+  filter(parent.res=="100kb") %>% 
   dplyr::slice_sample(n=10)
 
 test %>% 
   mutate(hub.foot=pmap_dbl(list(chr,parent.hub,ch.hub),function(chromo,parent.hub,ch.hub){
     parent_GRange<-unlist(GenomicRanges::reduce(pval_tbl %>% dplyr::select(chr,cl,GRange) %>% filter(chr==chromo & cl == parent.hub) %>% 
       dplyr::select(GRange) %>% unlist %>% GRangesList))
-    child_GRange<-GenomicRanges::reduce(Reduce(append,pval_tbl %>% dplyr::select(chr,cl,GRange) %>% filter(chr==chromo & cl%in% ch.hub) %>% 
+    child_GRange<-GenomicRanges::reduce(Reduce(append,pval_tbl %>% dplyr::select(chr,cl,res,GRange) %>% filter(chr==chromo & cl%in% ch.hub ) %>% 
                                                  dplyr::select(GRange) %>% unlist))
     return(sum(width(child_GRange))/sum(width(parent_GRange)))
   })) %>% arrange(desc(hub.foot))
