@@ -191,3 +191,10 @@ tmp_tbl %>%
   ggplot(.,aes(hub.foot))+
   geom_density()+
   facet_wrap(parent.res~.,scales="free")
+
+compound_hub_tbl %>% 
+  left_join(.,tmp_tbl %>% dplyr::select(chr,parent.hub,hub.foot)) %>% 
+  filter(hub.foot==1) %>% 
+  group_by(chr) %>% 
+  summarise(n=n()) %>% 
+  arrange(desc(n))
