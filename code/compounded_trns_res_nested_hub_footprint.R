@@ -167,3 +167,4 @@ for (tmp_res in names(sort(res_num[which(res_num > res_num[min_res])]))){
   trans_res_hub_l[[tmp_res]]<-tmp_res_tbl %>% filter(hub.foot > 0.5)
   tmp_higher_res_tbl<-trans_res_hub_l[[tmp_res]]
 }
+# Maybe too strict as sometimes there resolution skipping which will be missed...
