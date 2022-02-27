@@ -123,6 +123,9 @@ for(chromo in chr_set){
 parent_hub_content_tbl<-do.call(bind_rows,parent_hub_content_l)
 
 save(parent_hub_content_tbl,file="./data/HMEC_parent_hub_content.Rda")
+#---------------------------------------------------------------------
+parent_hub_content_tbl<-get_obj_in_fn("./data/HMEC_parent_hub_content.Rda")
+compound_hub_tbl<-get_obj_in_fn("./data/HMEC_5kb_hub_ancestry.Rda")
 
 parent_hub_content_tbl %>% 
   group_by(chr,parent.hub) %>% 
@@ -170,28 +173,16 @@ tmp_tbl %>%
 
 compound_hub_tbl %>% 
   left_join(.,tmp_tbl %>% dplyr::select(chr,parent.res,parent.hub,hub.foot)) %>% 
-  filter(hub.foot==1) %>%
   group_by(chr,hub.5kb) %>% 
-  slice_min(parent.hub.lvl) %>% 
-  ungroup() %>% 
-  group_by(parent.res) %>% 
-  summarise(n=n())
-
-compound_hub_tbl %>% 
-  left_join(.,tmp_tbl %>% dplyr::select(chr,parent.res,parent.hub,hub.foot)) %>% 
-  filter(hub.foot==1) %>%
-  group_by(chr,hub.5kb) %>% 
-  slice_min(parent.hub.lvl) %>% 
-  ungroup() %>% 
-  distinct(chr,parent.hub,parent.res) %>% 
-  group_by(parent.res) %>% 
-  summarise(n=n())
+  filter( all(hub.foot>0.5)) %>% 
+  mutate(n.lvl=parent.hub.lvl/max(parent.hub.lvl),set=paste0(chr,"_",hub.5kb)) %>% 
+  
+  ggplot(.,aes(n.lvl,hub.foot,group=set))+geom_line()
 
 compound_hub_tbl %>% 
   left_join(.,tmp_tbl %>% dplyr::select(chr,parent.res,parent.hub,hub.foot)) %>% 
 #  filter(chr== "chr5" & hub.5kb == "5kb_2_1_71490000_71495000") %>%
-  filter(hub.foot>0.5) %>%
-  
   group_by(chr,hub.5kb) %>% 
+  filter(any(hub.foot==1)) %>% 
   mutate(n.lvl=parent.hub.lvl/max(parent.hub.lvl)) %>% 
   ggplot(.,aes(n.lvl,hub.foot,group=hub.5kb))+geom_line()
