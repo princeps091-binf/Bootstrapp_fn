@@ -142,9 +142,24 @@ min_res_tbl<-tmp_tbl %>%
 lower_res_tbl<-tmp_tbl %>% 
   filter(parent.res!=min_res)
 ## Loop lower-resolution in stepwise manner to aggregate hubs composed mostly by higher-res hubs
-tmp_higher_res_tbl<-min_res_tbl
-trans_res_hub_l<-vector('list',length(res_num)-1)
-names(trans_res_hub_l)<-names(sort(res_num[which(res_num > res_num[min_res])]))
+trans_res_hub_l<-vector('list',length(res_num))
+names(trans_res_hub_l)<-names(sort(res_num))
+trans_res_hub_l[[min_res]]<-min_res_tbl
+tmp_ok_hub_tbl<-do.call(bind_rows,lapply(trans_res_hub_l,function(x){
+  if(!(is.null(x))){
+    return(x %>% 
+             unnest(ch.hub) %>% 
+             distinct(chr,parent.hub) %>% rename(hub=parent.hub) %>% 
+             bind_rows(.,  x %>% 
+                         unnest(ch.hub) %>% 
+                         distinct(chr,ch.hub) %>% rename(hub=ch.hub)) %>% 
+             distinct(chr,hub))    
+  } else{
+    return(tibble(chr=NA,hub=NA))
+  }
+  
+
+  })) %>% filter(!(is.na(hub)))
 
 for (tmp_res in names(sort(res_num[which(res_num > res_num[min_res])]))){
   message(tmp_res)
@@ -153,18 +168,61 @@ for (tmp_res in names(sort(res_num[which(res_num > res_num[min_res])]))){
     mutate(hub.foot=pmap_dbl(list(chr,parent.hub,ch.hub,parent.res),function(chromo,parent.hub,ch.hub,parent.res){
       parent_GRange<-unlist(GenomicRanges::reduce(full_hub_GRange_tbl %>% filter(chr==chromo & cl == parent.hub) %>% 
                                                     dplyr::select(GRange) %>% unlist %>% GRangesList))
-      ok_hub<-tmp_higher_res_tbl %>% filter(chr==chromo) %>% 
-        unnest(ch.hub) %>% 
-        summarise(hub=unique(c(parent.hub,ch.hub))) %>% unlist
-      ok_ch<-ch.hub[ch.hub %in% ok_hub]
+      tmp_ok_hub<-tmp_ok_hub_tbl %>% filter(chr == chromo) %>% dplyr::select(hub) %>% unlist
+      ok_ch<-ch.hub[ch.hub %in% tmp_ok_hub]
       if(length(ok_ch)<1){return(NA)} else{
-        child_GRange<-GenomicRanges::reduce(Reduce(append,full_hub_GRange_tbl %>% filter(chr==chromo & cl%in% ok_ch & res == unique(tmp_higher_res_tbl$parent.res)) %>% 
+        child_GRange<-GenomicRanges::reduce(Reduce(append,full_hub_GRange_tbl %>% filter(chr==chromo & cl%in% ok_ch) %>% 
                                                      dplyr::select(GRange) %>% unlist))
         return(sum(width(child_GRange))/sum(width(parent_GRange)))
         
       }
     }))
   trans_res_hub_l[[tmp_res]]<-tmp_res_tbl %>% filter(hub.foot > 0.5)
-  tmp_higher_res_tbl<-trans_res_hub_l[[tmp_res]]
+  # Collect ALL higher-resolution valid hubs
+  tmp_ok_hub_tbl<-do.call(bind_rows,lapply(trans_res_hub_l,function(x){
+    if(!(is.null(x))){
+      return(x %>% 
+               unnest(ch.hub) %>% 
+               distinct(chr,parent.hub) %>% rename(hub=parent.hub) %>% 
+               bind_rows(.,  x %>% 
+                           unnest(ch.hub) %>% 
+                           distinct(chr,ch.hub) %>% rename(hub=ch.hub)) %>% 
+               distinct(chr,hub))    
+    } else{
+      return(tibble(chr=NA,hub=NA))
+    }
+    
+    
+  })) %>% filter(!(is.na(hub)))
+  
 }
-# Maybe too strict as sometimes there resolution skipping which will be missed...
+
+ok_hub_tbl<-do.call(bind_rows,lapply(trans_res_hub_l,function(x){
+  if(!(is.null(x))){
+    return(x %>% 
+             unnest(ch.hub) %>% 
+             distinct(chr,parent.hub) %>% rename(hub=parent.hub) %>% 
+             bind_rows(.,  x %>% 
+                         unnest(ch.hub) %>% 
+                         distinct(chr,ch.hub) %>% rename(hub=ch.hub)) %>% 
+             distinct(chr,hub))    
+  } else{
+    return(tibble(chr=NA,hub=NA))
+  }
+  
+  
+})) %>% filter(!(is.na(hub)))
+
+compound_cl<-ok_hub_tbl %>% 
+  distinct(chr,hub)
+
+stub_5kb_cl<-compound_hub_tbl %>% 
+  mutate(parent.res=map_chr(parent.hub,function(x){
+    strsplit(x,split="_")[[1]][1]
+  })) %>% filter(parent.res %in% c("5kb",NA)) %>% 
+  dplyr::distinct(chr,hub.5kb) %>% 
+  dplyr::rename(hub=hub.5kb)
+
+
+compound_cl<-compound_cl %>% 
+  anti_join(.,stub_5kb_cl)

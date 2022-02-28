@@ -181,8 +181,24 @@ compound_hub_tbl %>%
 
 compound_hub_tbl %>% 
   left_join(.,tmp_tbl %>% dplyr::select(chr,parent.res,parent.hub,hub.foot)) %>% 
-#  filter(chr== "chr5" & hub.5kb == "5kb_2_1_71490000_71495000") %>%
   group_by(chr,hub.5kb) %>% 
-  filter(any(hub.foot==1)) %>% 
-  mutate(n.lvl=parent.hub.lvl/max(parent.hub.lvl)) %>% 
-  ggplot(.,aes(n.lvl,hub.foot,group=hub.5kb))+geom_line()
+  filter( all(hub.foot>0.5)) %>% 
+  slice_min(parent.hub.lvl) %>% 
+  ungroup() %>% 
+  distinct(chr,parent.hub,parent.res) %>% 
+  group_by(parent.res) %>% 
+  summarise(n=n())
+
+compound_hub_tbl %>% 
+  filter(!(is.na(parent.hub))) %>% 
+  left_join(.,tmp_tbl %>% dplyr::select(chr,parent.res,parent.hub,hub.foot)) %>%
+  filter(!(is.na(parent.res))) %>% 
+  group_by(chr,hub.5kb,parent.res) %>%
+  summarise(res.check=any(hub.foot>0.5)) %>% 
+  ungroup() %>% group_by(chr,hub.5kb) %>% 
+  summarise(trans.res=all(res.check),n=n()) %>% 
+  filter(trans.res) %>% arrange(desc(n))
+  
+  
+
+  
