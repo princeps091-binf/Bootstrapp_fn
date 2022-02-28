@@ -2,3 +2,5 @@ pval_tbl
 DAGGER_tbl
 HMEC_5kb_hub_ancestry.Rda
 HMEC_parent_hub_content.Rda
+HMEC_5kb_stubs.Rda
+HMEC_trans_res_hubs.Rda
