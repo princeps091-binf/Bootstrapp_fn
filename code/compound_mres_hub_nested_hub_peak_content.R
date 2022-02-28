@@ -107,6 +107,19 @@ parent_hub_tbl<-compound_hub_tbl %>%
 parent_hub_tbl<-parent_hub_tbl %>% 
   left_join(.,pval_tbl,by=c("parent.hub"="cl","chr"="chr"))
 #---------------------------------------------------------------------
-# Gene peak content for candidate trans-res hubs
+# CAGE-peak content for candidate trans-res hubs
 #---------------------------------------------------------------------
 # Compute the CAGE-peak redundancy of trans-res hubs
+
+## Collect for each parent-hub the nested hub content
+chr_set<-unique(parent_hub_tbl$chr)
+parent_hub_content_l<-vector("list",length(chr_set))
+names(parent_hub_content_l)<-chr_set
+
+for(chromo in chr_set){
+  
+  parent_hub_content_l[[chromo]]<-get_children_hub(parent_hub_tbl,dagger_mres_hub_tbl,chromo,spec_res_file)
+  
+}
+
+parent_hub_content_tbl<-do.call(bind_rows,parent_hub_content_l)
