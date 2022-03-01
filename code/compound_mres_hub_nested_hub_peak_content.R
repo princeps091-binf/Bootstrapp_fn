@@ -104,6 +104,7 @@ for(chromo in unique(dagger_mres_hub_tbl$chr)){
 compound_hub_tbl<-do.call(bind_rows,compound_hub_l)
 
 save(compound_hub_tbl,file="./data/HMEC_5kb_hub_ancestry.Rda")
+compound_hub_tbl<-get_obj_in_fn("./data/HMEC_5kb_hub_ancestry.Rda")
 
 compound_hub_tbl %>% 
   filter(!(is.na(parent.hub))) %>% 
@@ -133,6 +134,7 @@ hub_peak_content_tbl<-hub_peak_content_tbl %>%
     cage_Grange@elementMetadata$ID[unique(queryHits(findOverlaps(cage_Grange,x)))]
   }))
 save(hub_peak_content_tbl,file="./data/HMEC_5kb_hub_ancestry_CAGE_peak_content.Rda")
+hub_peak_content_tbl<-get_obj_in_fn("./data/HMEC_5kb_hub_ancestry.Rda")
 
 #---------------------------------------------------------------------
 # Compute the CAGE-peak redundancy of trans-res hubs
