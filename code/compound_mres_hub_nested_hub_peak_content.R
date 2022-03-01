@@ -194,7 +194,7 @@ for (tmp_res in names(sort(res_num[which(res_num > res_num[min_res])]))){
         
       }
     }))
-  trans_res_hub_l[[tmp_res]]<-tmp_res_tbl %>% filter(hub.foot > 0.5)
+  trans_res_hub_l[[tmp_res]]<-tmp_res_tbl %>% filter(hub.foot >0.5 )
   # Collect ALL higher-resolution valid hubs
   tmp_ok_hub_tbl<-do.call(bind_rows,lapply(trans_res_hub_l,function(x){
     if(!(is.null(x))){
@@ -213,3 +213,49 @@ for (tmp_res in names(sort(res_num[which(res_num > res_num[min_res])]))){
   })) %>% filter(!(is.na(hub)))
   
 }
+
+ok_hub_tbl<-do.call(bind_rows,lapply(trans_res_hub_l,function(x){
+  if(!(is.null(x))){
+    return(x %>% 
+             unnest(ch.hub) %>% 
+             distinct(chr,parent.hub) %>% rename(hub=parent.hub) %>% 
+             bind_rows(.,  x %>% 
+                         unnest(ch.hub) %>% 
+                         distinct(chr,ch.hub) %>% rename(hub=ch.hub)) %>% 
+             distinct(chr,hub))    
+  } else{
+    return(tibble(chr=NA,hub=NA))
+  }
+  
+  
+})) %>% filter(!(is.na(hub)))
+
+compound_cl<-ok_hub_tbl %>% 
+  distinct(chr,hub)
+
+ok_hub_ID_vec<-compound_cl %>% 
+  mutate(ID=paste(chr,hub,sep="_")) %>%
+  dplyr::select(ID) %>% unlist
+
+stub_5kb_cl<-compound_hub_tbl %>% 
+  mutate(parent.ID=paste(chr,parent.hub,sep="_")) %>% 
+  group_by(chr,hub.5kb) %>% 
+  summarise(ok.parent=any(parent.ID %in% ok_hub_ID_vec)) %>% 
+  filter(!(ok.parent)) %>% 
+  bind_rows(.,compound_hub_tbl %>%
+              filter(is.na(parent.hub)) %>% 
+              dplyr::select(chr,hub.5kb) %>% 
+              mutate(ok.parent=F)) %>% 
+  distinct(chr,hub.5kb,ok.parent) %>% 
+  dplyr::rename(hub=hub.5kb)
+
+
+compound_cl<-compound_cl %>% 
+  anti_join(.,stub_5kb_cl)
+
+compound_cl %>% 
+  mutate(res=map_chr(hub,function(x){
+    strsplit(x,split="_")[[1]][1]
+  })) %>% 
+  group_by(res) %>% 
+  summarise(n=n())
