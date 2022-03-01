@@ -19,7 +19,7 @@ input_data_fn<-function(tmp_file){
 
 #-----------------------------------------
 union_file<-"./data/DAGGER_tbl/HMEC_union_dagger_tbl.Rda"
-compound_cl_file<-"./data/HMEC_5kb_hub_ancestry_peak_compound_hub.Rda"
+compound_cl_file<-"./data/HMEC_5kb_hub_ancestry_5kb_peak_compound_hub.Rda"
 hub_peak_content_tbl_file<-"./data/HMEC_5kb_hub_ancestry_CAGE_peak_content.Rda"
 compound_hub_tbl_file<-"./data/HMEC_5kb_hub_ancestry.Rda"
 spec_res_file<-"~/Documents/multires_bhicect/data/HMEC/spec_res/"
