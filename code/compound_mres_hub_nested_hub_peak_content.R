@@ -103,6 +103,7 @@ for(chromo in unique(dagger_mres_hub_tbl$chr)){
 }
 compound_hub_tbl<-do.call(bind_rows,compound_hub_l)
 
+save(compound_hub_tbl,file="./data/HMEC_5kb_hub_ancestry.Rda")
 
 compound_hub_tbl %>% 
   filter(!(is.na(parent.hub))) %>% 
@@ -131,6 +132,8 @@ hub_peak_content_tbl<-hub_peak_content_tbl %>%
   mutate(peak.content=future_map(GRange,function(x){
     cage_Grange@elementMetadata$ID[unique(queryHits(findOverlaps(cage_Grange,x)))]
   }))
+save(hub_peak_content_tbl,file="./data/HMEC_5kb_hub_ancestry_CAGE_peak_content.Rda")
+
 #---------------------------------------------------------------------
 # Compute the CAGE-peak redundancy of trans-res hubs
 
@@ -239,6 +242,7 @@ ok_hub_tbl<-do.call(bind_rows,lapply(trans_res_hub_l,function(x){
 
 compound_cl<-ok_hub_tbl %>% 
   distinct(chr,hub)
+save(compound_cl,file="./data/HMEC_5kb_hub_ancestry_peak_compound_hub.Rda")
 
 ok_hub_ID_vec<-compound_cl %>% 
   mutate(ID=paste(chr,hub,sep="_")) %>%
@@ -249,11 +253,6 @@ stub_5kb_cl<-compound_hub_tbl %>%
   group_by(chr,hub.5kb) %>% 
   summarise(ok.parent=any(parent.ID %in% ok_hub_ID_vec)) %>% 
   filter(!(ok.parent)) %>% 
-  bind_rows(.,compound_hub_tbl %>%
-              filter(is.na(parent.hub)) %>% 
-              dplyr::select(chr,hub.5kb) %>% 
-              mutate(ok.parent=F)) %>% 
-  distinct(chr,hub.5kb,ok.parent) %>% 
   bind_rows(.,compound_hub_tbl %>% 
   filter(!(is.na(parent.hub))) %>% 
   group_by(chr,hub.5kb) %>% 
@@ -264,32 +263,31 @@ stub_5kb_cl<-compound_hub_tbl %>%
   distinct(chr,hub.5kb,ok.parent) %>% 
   dplyr::rename(hub=hub.5kb)
   
+trans_res_5kb_hub<-compound_hub_tbl %>% 
+  rename(hub=hub.5kb) %>% 
+  anti_join(.,stub_5kb_cl) %>% 
+  distinct(chr,hub)
 
-
-compound_cl<-compound_cl %>% 
-  anti_join(.,stub_5kb_cl)
-
-compound_cl %>% 
+compound_cl<-ok_hub_tbl %>% 
+  distinct(chr,hub) %>% 
   mutate(res=map_chr(hub,function(x){
-    strsplit(x,split="_")[[1]][1]
+    return(strsplit(x,split="_")[[1]][1])
   })) %>% 
-  group_by(res) %>% 
-  summarise(n=n())
+  filter(res != "5kb")
 
-peak_set_l<-lapply(names(sort(res_num[which(res_num > res_num[min_res])])),function(tmp_res){
+
+peak_set_l<-lapply(names(sort(res_num[which(res_num > res_num[min_res])],decreasing = T)),function(tmp_res){
   compound_cl %>% 
     mutate(res=map_chr(hub,function(x){
       strsplit(x,split="_")[[1]][1]
     })) %>% 
-    filter(res==tmp_res) %>% 
+    filter(res%in%names(res_num[which(res_num >= res_num[tmp_res])])) %>% 
     inner_join(.,compound_hub_tbl,by=c('chr'='chr','hub'='parent.hub')) %>% 
     dplyr::select(chr,hub.5kb) %>% mutate(ID=paste(chr,hub.5kb,sep="_")) %>% 
-    dplyr::select(ID) %>% unlist
+    dplyr::select(ID) %>% distinct %>% unlist
   
   
 })
 names(peak_set_l)<-names(sort(res_num[which(res_num > res_num[min_res])]))
-library(UpSetR)
-upset(fromList(peak_set_l))
+peak_set_l[[length(peak_set_l)]]<-unique(unlist(peak_set_l))
 lapply(peak_set_l,length)
-length(unique(unlist(peak_set_l)))
