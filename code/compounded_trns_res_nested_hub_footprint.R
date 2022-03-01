@@ -222,8 +222,8 @@ stub_5kb_cl<-compound_hub_tbl %>%
   })) %>% filter(parent.res %in% c("5kb",NA)) %>% 
   dplyr::distinct(chr,hub.5kb) %>% 
   dplyr::rename(hub=hub.5kb)
-save(stub_5kb_cl,file="./data/HMEC_5kb_stubs.Rda")
+save(stub_5kb_cl,file="./data/HMEC_5kb_stubs_foot.Rda")
 
 compound_cl<-compound_cl %>% 
   anti_join(.,stub_5kb_cl)
-save(compound_cl,file="./data/HMEC_trans_res_hubs.Rda")
+save(compound_cl,file="./data/HMEC_trans_res_hubs_foot.Rda")
