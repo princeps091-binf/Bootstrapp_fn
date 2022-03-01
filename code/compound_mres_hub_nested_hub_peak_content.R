@@ -103,6 +103,13 @@ for(chromo in unique(dagger_mres_hub_tbl$chr)){
 }
 compound_hub_tbl<-do.call(bind_rows,compound_hub_l)
 
+
+compound_hub_tbl %>% 
+  filter(!(is.na(parent.hub))) %>% 
+  group_by(chr,hub.5kb) %>% 
+  summarise(lower.res=length(base::grep("5kb",parent.hub,invert=T))>0) %>% 
+  filter(!(lower.res))
+
 parent_hub_tbl<-compound_hub_tbl %>%
   filter(!(is.na(parent.hub))) %>% 
   distinct(chr,parent.hub,parent.hub.lvl)
@@ -247,7 +254,16 @@ stub_5kb_cl<-compound_hub_tbl %>%
               dplyr::select(chr,hub.5kb) %>% 
               mutate(ok.parent=F)) %>% 
   distinct(chr,hub.5kb,ok.parent) %>% 
+  bind_rows(.,compound_hub_tbl %>% 
+  filter(!(is.na(parent.hub))) %>% 
+  group_by(chr,hub.5kb) %>% 
+  summarise(lower.res=length(base::grep("5kb",parent.hub,invert=T))>0) %>% 
+  filter(!(lower.res)) %>%   
+  dplyr::select(chr,hub.5kb) %>% 
+  mutate(ok.parent=F)) %>% 
+  distinct(chr,hub.5kb,ok.parent) %>% 
   dplyr::rename(hub=hub.5kb)
+  
 
 
 compound_cl<-compound_cl %>% 
@@ -259,3 +275,21 @@ compound_cl %>%
   })) %>% 
   group_by(res) %>% 
   summarise(n=n())
+
+peak_set_l<-lapply(names(sort(res_num[which(res_num > res_num[min_res])])),function(tmp_res){
+  compound_cl %>% 
+    mutate(res=map_chr(hub,function(x){
+      strsplit(x,split="_")[[1]][1]
+    })) %>% 
+    filter(res==tmp_res) %>% 
+    inner_join(.,compound_hub_tbl,by=c('chr'='chr','hub'='parent.hub')) %>% 
+    dplyr::select(chr,hub.5kb) %>% mutate(ID=paste(chr,hub.5kb,sep="_")) %>% 
+    dplyr::select(ID) %>% unlist
+  
+  
+})
+names(peak_set_l)<-names(sort(res_num[which(res_num > res_num[min_res])]))
+library(UpSetR)
+upset(fromList(peak_set_l))
+lapply(peak_set_l,length)
+length(unique(unlist(peak_set_l)))
