@@ -100,27 +100,39 @@ parent_hub_content_tbl<-parent_hub_content_tbl %>%
   })) %>% 
   arrange(desc(hub.5kb.foot))
 
-parent_hub_content_tbl %>% 
-  mutate(res=map_chr(parent.hub,function(x){
-    strsplit(x,split="_")[[1]][1]
-  })) %>% 
+candidate_hub_tbl<-parent_hub_content_tbl %>% 
   filter(hub.5kb.foot>0.5) %>% 
-  group_by(res) %>% 
-  summarise(n=n())
-
-parent_hub_content_tbl %>% 
   mutate(res=map_chr(parent.hub,function(x){
-    strsplit(x,split="_")[[1]][1]
-  })) %>% 
+  strsplit(x,split="_")[[1]][1]
+}))
+
+candidate_hub_tbl %>% 
   ggplot(.,aes(hub.5kb.foot))+
   geom_density()+
   facet_wrap(res~.,scales="free")
-
-parent_hub_content_tbl %>% 
-  mutate(parent.res=map_chr(parent.hub,function(x){
-    strsplit(x,split="_")[[1]][1]
-  })) %>% 
-  filter(hub.5kb.foot>0.5 & parent.res %in% c("500kb","100kb","50kb","10kb")) %>% 
+lapply(res_num,function(tmp_res){
+  
+  hub_5kb_gene<-candidate_hub_tbl %>% 
+    filter(res_num[res] >= res_num["10kb"]) %>% 
+    unnest(cols=c(ch.hub)) %>% 
+    mutate(ch.res=map_chr(ch.hub,function(x){
+      strsplit(x,split="_")[[1]][1]
+    })) %>% 
+    filter(ch.res=="5kb") %>% 
+    distinct(chr,ch.hub)  %>% 
+    inner_join(.,hub_5kb_cage_content,by=c("chr"="chr","ch.hub"="hub")) %>% 
+    unnest(cols=c(peak.content)) %>% distinct(peak.content) %>% unlist
+  
+  
+  full_gene<-candidate_hub_tbl %>% 
+    filter(res_num[res] >= res_num["10kb"]) %>% 
+    unnest(cols=c(ch.hub)) %>% 
+    inner_join(.,hub_peak_content_tbl,by=c("chr"="chr","parent.hub"="hub")) %>% 
+    unnest(cols=c(peak.content)) %>% distinct(peak.content) %>% unlist
+  sum(full_gene %in% hub_5kb_gene)/length(full_gene)
+})
+candidate_hub_tbl %>% 
+  filter(res_num[res] >= res_num["50kb"]) %>% 
   unnest(cols=c(ch.hub)) %>% 
   mutate(ch.res=map_chr(ch.hub,function(x){
     strsplit(x,split="_")[[1]][1]
@@ -131,18 +143,10 @@ parent_hub_content_tbl %>%
   unnest(cols=c(peak.content)) %>% distinct(peak.content)
 
 
-parent_hub_content_tbl %>% 
-  mutate(parent.res=map_chr(parent.hub,function(x){
-    strsplit(x,split="_")[[1]][1]
-  })) %>% 
-  filter(hub.5kb.foot>0.5 & parent.res %in% c("500kb","100kb","50kb","10kb")) %>% 
+candidate_hub_tbl %>% 
+  filter(res_num[res] >= res_num["50kb"]) %>% 
   unnest(cols=c(ch.hub)) %>% 
-  mutate(ch.res=map_chr(ch.hub,function(x){
-    strsplit(x,split="_")[[1]][1]
-  })) %>% 
-  filter(ch.res=="5kb") %>% 
-  distinct(chr,ch.hub)  %>% 
-  inner_join(.,hub_5kb_cage_content,by=c("chr"="chr","ch.hub"="hub")) %>% 
+  inner_join(.,hub_peak_content_tbl,by=c("chr"="chr","parent.hub"="hub")) %>% 
   unnest(cols=c(peak.content)) %>% distinct(peak.content)
 
 hub_5kb_cage_content %>% 
