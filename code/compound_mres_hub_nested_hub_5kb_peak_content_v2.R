@@ -40,6 +40,10 @@ get_children_hub<-function(parent_hub_tbl,dagger_mres_hub_tbl,chromo,spec_res_fi
 dagger_union_file<-"./data/DAGGER_tbl/HMEC_union_dagger_tbl.Rda"
 spec_res_file<-"~/Documents/multires_bhicect/data/HMEC/spec_res/"
 pval_tbl_file<-"./data/pval_tbl/CAGE_union_HMEC_pval_tbl.Rda"
+cage_peak_Grange_file<-"./data/GRanges/CAGE_union_HMEC_Grange.Rda"
+
+cage_Grange<-get_obj_in_fn(cage_peak_Grange_file)
+mcols(cage_Grange)<-tibble(ID=paste("CAGE",1:length(cage_Grange),sep="_"))
 
 pval_tbl<-get_obj_in_fn(pval_tbl_file)
 dagger_mres_hub_tbl<-get_obj_in_fn(dagger_union_file)
@@ -108,7 +112,7 @@ candidate_hub_tbl %>%
   geom_density()+
   facet_wrap(res~.,scales="free")
 
-lapply(res_num,function(tmp_res){
+walk(res_num,function(tmp_res){
   
   hub_5kb_gene<-candidate_hub_tbl %>% 
     filter(res_num[res] >= tmp_res) %>% 
@@ -134,7 +138,7 @@ ori_5kb_hub_content<-hub_5kb_cage_content %>%
   unnest(cols=c(peak.content)) %>% distinct(peak.content) %>% unlist
 
 
-lapply(res_num,function(tmp_res){
+walk(res_num,function(tmp_res){
   
   hub_5kb_gene<-candidate_hub_tbl %>% 
     filter(res_num[res] >= tmp_res) %>% 
@@ -149,3 +153,51 @@ lapply(res_num,function(tmp_res){
   
   message(sum(hub_5kb_gene %in% ori_5kb_hub_content)/length(unique(c(ori_5kb_hub_content))))
 })
+
+walk(res_num,function(tmp_res){
+  
+tmp_peak<-candidate_hub_tbl %>% 
+  filter(res_num[res] >= tmp_res) %>% 
+  left_join(.,hub_peak_content_tbl %>% dplyr::select(chr,hub,peak.content),by=c("chr"="chr","parent.hub"="hub")) %>% 
+  unnest(cols=c(peak.content)) %>% 
+  distinct(peak.content) %>% unlist
+message(sum(tmp_peak %in% cage_Grange@elementMetadata$ID)/length(cage_Grange@elementMetadata$ID))
+})
+
+
+hub_5kb_cage<-dagger_mres_hub_tbl%>% 
+  filter(res=="5kb") %>% 
+  inner_join(.,hub_peak_content_tbl %>% dplyr::select(chr,hub,peak.content),by=c("chr"="chr","node"="hub")) %>% 
+  unnest(cols=c(peak.content)) %>% 
+  distinct(peak.content) %>% unlist
+
+sum(hub_5kb_cage %in% cage_Grange@elementMetadata$ID)/length(cage_Grange@elementMetadata$ID)
+
+walk(res_num,function(tmp_res){
+  message(names(res_num[which(res_num==tmp_res)]))
+  tmp_tbl<-candidate_hub_tbl %>% 
+    filter(res_num[res] >= tmp_res) %>% 
+    left_join(.,hub_peak_content_tbl %>% dplyr::select(chr,hub,peak.content),by=c("chr"="chr","parent.hub"="hub"))
+  
+  save(tmp_tbl,file=paste0("./data/candidate_compound_hub/HMEC_",names(res_num[which(res_num==tmp_res)]),"_tss_compound_hub.Rda")) 
+    
+    })
+
+hub_5kb_stub<-compound_hub_tbl %>% 
+  filter(is.na(parent.hub)) %>% 
+  distinct(chr,hub.5kb) %>% 
+  bind_rows(.,compound_hub_tbl %>% 
+              filter(!(is.na(parent.hub))) %>% 
+              group_by(chr,hub.5kb) %>% 
+              summarise(stub=all(grepl("^5kb_",parent.hub))) %>% 
+              filter(stub) %>% 
+              dplyr::select(-stub) %>% 
+              ungroup)
+save(hub_5kb_stub,file=paste0("./data/candidate_compound_hub/HMEC_hub_5kb_stub.Rda")) 
+
+hub_5kb_stub_cage<-hub_5kb_stub %>% 
+  inner_join(.,hub_peak_content_tbl %>% dplyr::select(chr,hub,peak.content),by=c("chr"="chr","hub.5kb"="hub")) %>% 
+  unnest(cols=c(peak.content)) %>% 
+  distinct(peak.content) %>% unlist
+
+sum(hub_5kb_stub_cage %in% cage_Grange@elementMetadata$ID)/length(cage_Grange@elementMetadata$ID)
