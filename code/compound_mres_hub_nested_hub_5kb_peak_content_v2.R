@@ -41,14 +41,15 @@ dagger_union_file<-"./data/DAGGER_tbl/HMEC_union_dagger_tbl.Rda"
 spec_res_file<-"~/Documents/multires_bhicect/data/HMEC/spec_res/"
 pval_tbl_file<-"./data/pval_tbl/CAGE_union_HMEC_pval_tbl.Rda"
 cage_peak_Grange_file<-"./data/GRanges/CAGE_union_HMEC_Grange.Rda"
-
+hub_5kb_ancestry_file<-"./data/HMEC_5kb_hub_ancestry.Rda"
+hub_ancestry_peak_content_file<-"./data/HMEC_5kb_hub_ancestry_CAGE_peak_content.Rda"
 cage_Grange<-get_obj_in_fn(cage_peak_Grange_file)
 mcols(cage_Grange)<-tibble(ID=paste("CAGE",1:length(cage_Grange),sep="_"))
 
 pval_tbl<-get_obj_in_fn(pval_tbl_file)
 dagger_mres_hub_tbl<-get_obj_in_fn(dagger_union_file)
-compound_hub_tbl<-get_obj_in_fn("./data/HMEC_5kb_hub_ancestry.Rda")
-hub_peak_content_tbl<-get_obj_in_fn("./data/HMEC_5kb_hub_ancestry_CAGE_peak_content.Rda")
+compound_hub_tbl<-get_obj_in_fn(hub_5kb_ancestry_file)
+hub_peak_content_tbl<-get_obj_in_fn(hub_ancestry_peak_content_file)
 #---------------------------------------------------------------------
 
 parent_hub_tbl<-compound_hub_tbl %>%

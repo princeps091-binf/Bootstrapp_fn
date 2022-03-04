@@ -35,7 +35,6 @@ parent_hub_content_tbl<-parent_hub_content_tbl %>%
   group_by(chr,parent.hub) %>% 
   summarise(ch.hub=list(unique(children.hub))) %>% 
   ungroup() %>% 
-  dplyr::slice(1) %>% 
   mutate(hub.5kb.foot=pmap_dbl(list(chr,parent.hub,ch.hub),function(chromo,parent.hub,ch.hub){
     
     parent_peak_content<-hub_peak_content_tbl %>% 
