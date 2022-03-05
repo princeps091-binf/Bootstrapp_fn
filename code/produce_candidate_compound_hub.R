@@ -2,8 +2,6 @@ library(GenomicRanges)
 library(tidyverse)
 library(furrr)
 library(data.tree)
-library(igraph)
-library(furrr)
 options(scipen = 999999999)
 res_set <- c('1Mb','500kb','100kb','50kb','10kb','5kb')
 res_num <- c(1e6,5e5,1e5,5e4,1e4,5e3)
@@ -18,9 +16,9 @@ get_obj_in_fn<-function(file){
   return(tmp_tbl)
 }
 #-----------------------------------------
-hub_peak_content_file<-"./data/H1_5kb_hub_ancestry_CAGE_peak_content.Rda"
-parent_hub_content_file<-"./data/H1_5kb_hub_parent_descendance.Rda"
-compound_hub_file<-"./data/H1_5kb_hub_ancestry.Rda"
+hub_peak_content_file<-"./data/GM12878_5kb_hub_ancestry_CAGE_peak_content.Rda"
+parent_hub_content_file<-"./data/GM12878_5kb_hub_parent_descendance.Rda"
+compound_hub_file<-"./data/GM12878_5kb_hub_ancestry.Rda"
 
 hub_peak_content_tbl<-get_obj_in_fn(hub_peak_content_file)
 parent_hub_content_tbl<-get_obj_in_fn(parent_hub_content_file)
@@ -36,7 +34,7 @@ parent_hub_content_tbl<-parent_hub_content_tbl %>%
   group_by(chr,parent.hub) %>% 
   summarise(ch.hub=list(unique(children.hub))) %>% 
   ungroup() %>% 
-  mutate(hub.5kb.foot=pmap_dbl(list(chr,parent.hub,ch.hub),function(chromo,parent.hub,ch.hub){
+  mutate(hub.5kb.foot=future_pmap_dbl(list(chr,parent.hub,ch.hub),function(chromo,parent.hub,ch.hub){
     
     parent_peak_content<-hub_peak_content_tbl %>% 
       filter(chr==chromo & hub == parent.hub) %>% 
@@ -66,7 +64,7 @@ walk(res_num,function(tmp_res){
   tmp_tbl<-candidate_hub_tbl %>% 
     filter(res_num[res] >= tmp_res) 
   
-  save(tmp_tbl,file=paste0("./data/candidate_compound_hub/HMEC_",names(res_num[which(res_num==tmp_res)]),"_tss_compound_hub.Rda")) 
+  save(tmp_tbl,file=paste0("./data/candidate_compound_hub/GM12878_",names(res_num[which(res_num==tmp_res)]),"_tss_compound_hub.Rda")) 
   
 })
 
@@ -80,5 +78,5 @@ hub_5kb_stub<-compound_hub_tbl %>%
               filter(stub) %>% 
               dplyr::select(-stub) %>% 
               ungroup)
-save(hub_5kb_stub,file=paste0("./data/candidate_compound_hub/HMEC_hub_5kb_stub.Rda")) 
+save(hub_5kb_stub,file=paste0("./data/candidate_compound_hub/GM12878_hub_5kb_stub.Rda")) 
 
