@@ -10,22 +10,13 @@ names(res_num)<-res_set
 
 #-----------------------------------------
 input_data_fn<-function(tmp_file){
-  tmp_tbl<-get(load(tmp_file))
+  out_tbl<-get(load(tmp_file))
   tmp_obj<-names(mget(load(tmp_file)))
   rm(list=tmp_obj)
   rm(tmp_obj)
-  return(tmp_tbl) 
+  return(out_tbl) 
 }
 
-build_Grange<-function(tmp_tbl){
-  
-  cage_chr_Grange<-GRanges(seqnames=tmp_tbl$chr,
-                           ranges = IRanges(start=as.numeric(tmp_tbl$start),
-                                            end=as.numeric(tmp_tbl$end)
-                           ))
-  return(cage_chr_Grange)
-  
-}
 
 get_tophub_fn<-function(dagger_hub_tbl,spec_res_file,chromo,tmp_res){
   message(chromo)
@@ -51,16 +42,16 @@ get_tophub_fn<-function(dagger_hub_tbl,spec_res_file,chromo,tmp_res){
 
 #-----------------------------------------
 union_file<-"./data/DAGGER_tbl/HMEC_union_dagger_tbl.Rda"
-union_pval_file<-"./data/pval_tbl/CAGE_union_HMEC_pval_tbl.Rda"
 spec_res_file<-"~/Documents/multires_bhicect/data/HMEC/spec_res/"
+compound_hub_5kb_file<-"./data/candidate_compound_hub/HMEC_5kb_tss_compound_hub.Rda"
 
 dagger_hub_tbl<-input_data_fn(union_file)
-cl_tbl<-input_data_fn(union_pval_file)
+compound_hub_5kb_tbl<-input_data_fn(compound_hub_5kb_file)
 
-chromo<-"chr19"
+chromo<-"chr1"
 tmp_res<-"5kb"
 tmp_hub_set<-dagger_hub_tbl %>% filter(chr==chromo & res==tmp_res)
-
+tmp_compound_hub_tbl<-compound_hub_5kb_tbl %>% filter(chr==chromo )
 base::load(paste0(spec_res_file,chromo,"_spec_res.Rda"))
 chr_bpt<-FromListSimple(chr_spec_res$part_tree)
 node_ancestor<-chr_bpt$Get(function(x){x$Get('name',traversal='ancestor')})
@@ -75,8 +66,12 @@ chr_hubs<-dagger_hub_tbl %>% filter(chr==chromo ) %>% distinct(node) %>% unlist
 V(g)$color<-ifelse(V(g)$name %in% chr_hubs,"red","grey50")
 plot(g,layout=layout_as_tree(g),vertex.size=2,vertex.label=NA,edge.arrow.size=0)
 
+V(g)$color<-ifelse(V(g)$name %in% tmp_compound_hub_tbl$parent.hub,"red","grey50")
+plot(g,layout=layout_as_tree(g),vertex.size=1,vertex.label=NA,edge.arrow.size=0)
+
 compound_hubs<-unique(unlist(lapply(node_ancestor[tmp_hub_set$node],function(x){
   x[max(which(x %in% chr_hubs))]
 })))
 V(g)$color<-ifelse(V(g)$name %in% tmp_hub_set$node,"red",ifelse(V(g)$name %in% compound_hubs, "green",ifelse(V(g)$name %in% chr_hubs,"orange","grey50")))
 plot(g,layout=layout_as_tree(g),vertex.size=2,vertex.label=NA,edge.arrow.size=0)
+

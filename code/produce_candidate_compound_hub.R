@@ -9,16 +9,16 @@ names(res_num)<-res_set
 
 #-----------------------------------------
 get_obj_in_fn<-function(file){
-  tmp_tbl<-get(load(file))
+  out_tbl<-get(load(file))
   tmp_obj<-names(mget(load(file)))
   rm(list=tmp_obj)
   rm(tmp_obj)
-  return(tmp_tbl)
+  return(out_tbl)
 }
 #-----------------------------------------
 hub_peak_content_file<-"./data/GM12878_5kb_hub_ancestry_CAGE_peak_content.Rda"
 parent_hub_content_file<-"./data/GM12878_5kb_hub_parent_descendance.Rda"
-compound_hub_file<-"./data/GM12878_5kb_hub_ancestry.Rda"
+compound_hub_file<-"./data/HMEC_5kb_hub_ancestry.Rda"
 
 hub_peak_content_tbl<-get_obj_in_fn(hub_peak_content_file)
 parent_hub_content_tbl<-get_obj_in_fn(parent_hub_content_file)
@@ -69,14 +69,24 @@ walk(res_num,function(tmp_res){
 })
 
 hub_5kb_stub<-compound_hub_tbl %>% 
-  filter(is.na(parent.hub)) %>% 
-  distinct(chr,hub.5kb) %>% 
-  bind_rows(.,compound_hub_tbl %>% 
-              filter(!(is.na(parent.hub))) %>% 
-              group_by(chr,hub.5kb) %>% 
-              summarise(stub=all(grepl("^5kb_",parent.hub))) %>% 
-              filter(stub) %>% 
-              dplyr::select(-stub) %>% 
-              ungroup)
-save(hub_5kb_stub,file=paste0("./data/candidate_compound_hub/GM12878_hub_5kb_stub.Rda")) 
+  group_by(chr,hub.5kb) %>% 
+  summarise(is.5kb.stub=all(grepl("^5kb_",parent.hub) | is.na(parent.hub))) %>% 
+  filter(is.5kb.stub)
 
+save(hub_5kb_stub,file=paste0("./data/candidate_compound_hub/HMEC_hub_5kb_stub.Rda")) 
+
+
+non_5kb_stub<-compound_hub_tbl %>% 
+  group_by(chr,hub.5kb) %>% 
+  summarise(is.5kb.stub=all(grepl("^5kb_",parent.hub) | is.na(parent.hub))) %>% 
+  filter(!(is.5kb.stub)) %>% 
+  left_join(.,compound_hub_tbl) 
+
+non_5kb_stub_tbl<-non_5kb_stub %>% 
+  distinct(chr,parent.hub) %>% 
+  dplyr::rename(hub=parent.hub) %>% 
+  bind_rows(.,non_5kb_stub %>% 
+              distinct(chr,hub.5kb) %>% 
+              dplyr::rename(hub=hub.5kb)) %>% 
+  distinct(chr,hub)
+save(non_5kb_stub_tbl,file="./data/candidate_compound_hub/HMEC_non_5kb_stub_hub.Rda")
