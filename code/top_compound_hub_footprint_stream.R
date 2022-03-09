@@ -31,8 +31,8 @@ cl_reduce_coord_fn<-function(hmec_dagger_01_tbl,tmp_res,res_num){
 }
 
 #-------------------------------------------------------------------------------------------------------
-compound_hub_5kb_file<-"./data/candidate_compound_hub/HMEC_5kb_tss_compound_hub.Rda"
-spec_res_file<-"~/Documents/multires_bhicect/data/HMEC/spec_res/"
+compound_hub_5kb_file<-"./data/candidate_compound_hub/GM12878_5kb_tss_compound_hub.Rda"
+spec_res_file<-"~/Documents/multires_bhicect/data/GM12878/spec_res/"
 
 compound_hub_5kb_tbl<-tbl_in_fn(compound_hub_5kb_file)
 
