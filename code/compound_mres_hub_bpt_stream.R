@@ -50,9 +50,9 @@ top_compound_hubs<-tmp_compound_hub_tbl %>%
 
 compound_set<-unique(c(tmp_compound_hub_tbl$parent.hub,unlist(tmp_compound_hub_tbl$ch.hub)))
 
-V(g)$color<-ifelse(V(g)$name %in% top_compound_hubs,"red",
+V(g)$color<-ifelse(V(g)$name %in% top_compound_hubs,"green",
                    ifelse(V(g)$name %in% compound_set,"orange",
-                          ifelse(V(g)$name %in% chr_hubs, "green","grey50")))
+                          ifelse(V(g)$name %in% chr_hubs, "red","grey50")))
 plot(g,layout=layout_as_tree(g),vertex.size=2,vertex.label=NA,edge.arrow.size=0)
 
 
