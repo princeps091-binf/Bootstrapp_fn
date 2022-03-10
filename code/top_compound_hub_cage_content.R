@@ -64,3 +64,30 @@ top_compound_hub_5kb_tbl<-top_compound_hub_5kb_tbl %>%
 top_compound_hub_5kb_tbl %>% 
   group_by(res) %>% 
   summarise(npeak=length(unique(unlist(cage.content))))
+#---------------------------------
+# Compare with original 5kb compounf set
+compound_hub_5kb_tbl<-do.call(bind_rows,map(unique(compound_hub_5kb_tbl$chr),function(chromo){
+  message(chromo)
+  base::load(paste0(spec_res_file,chromo,"_spec_res.Rda"))
+  tmp_tbl<-compound_hub_5kb_tbl %>% 
+    filter(chr==chromo) %>% 
+    mutate(bins=chr_spec_res$cl_member[parent.hub]) %>% 
+    mutate(bins=map(bins,as.numeric)) %>% 
+    mutate(ends=pmap(list(res,bins),function(res,bins){
+      return(bins + res_num[res]-1)
+    })) %>% 
+    mutate(GRange=pmap(list(chr,bins,ends),function(chr,bins,ends){
+      return(GRanges(seqnames=chr,
+                     ranges = IRanges(start=bins,
+                                      end=ends
+                     )))
+    })) %>% 
+    dplyr::select(-c(bins,ends))
+  
+}))
+plan(multisession, workers=3)
+
+compound_hub_5kb_tbl<-compound_hub_5kb_tbl %>% 
+  mutate(cage.content=future_map(GRange,function(x){
+    mcols(cage_GRange)$ID[unique(queryHits(findOverlaps(cage_GRange,x)))]
+  }))
