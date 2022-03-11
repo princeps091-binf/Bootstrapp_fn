@@ -15,11 +15,11 @@ tbl_in_fn<-function(tmp_file){
   return(out_tbl)
 }
 #-------------------------------------------------------------------------------------------------------
-compound_hub_5kb_file<-"./data/candidate_compound_hub/GM12878_5kb_tss_compound_hub.Rda"
-spec_res_file<-"~/Documents/multires_bhicect/data/GM12878/spec_res/"
-gene_GRange_file<-"~/Documents/multires_bhicect/GO_enrichment_viz/data/CAGE_GM12878_gene_GRange.Rda"
+compound_hub_5kb_file<-"./data/candidate_compound_hub/HMEC_5kb_tss_compound_hub.Rda"
+spec_res_file<-"~/Documents/multires_bhicect/data/HMEC/spec_res/"
+gene_GRange_file<-"~/Documents/multires_bhicect/GO_enrichment_viz/data/CAGE_HMEC_gene_GRange.Rda"
 gene_conv_tbl_file<-"~/Documents/multires_bhicect/GO_enrichment_viz/data/gene_name_conv_tbl.Rda"
-semantic_module_file<-"~/Documents/multires_bhicect/GO_enrichment_viz/data/semantic_module_tbl/GM12878_semantic_module_tbl.Rda"
+semantic_module_file<-"~/Documents/multires_bhicect/GO_enrichment_viz/data/semantic_module_tbl/HMEC_semantic_module_tbl.Rda"
 
 gene_GRange<-tbl_in_fn(gene_GRange_file)
 
@@ -73,9 +73,47 @@ top_compound_hub_5kb_tbl<-top_compound_hub_5kb_tbl %>%
              distinct %>% unlist)
   }))
 
-sem_mod_tbl$GO.tbl[[1]] %>% arrange(FDR)
+mod_n<-1
+sem_mod_tbl$GO.tbl[[mod_n]] %>% arrange(FDR)
 
-tmp_mod_entrez_set<-sem_mod_tbl$entrez.content[[1]]
+tmp_mod_entrez_set<-sem_mod_tbl$entrez.content[[mod_n]]
+
+
+top_compound_hub_5kb_tbl<-top_compound_hub_5kb_tbl %>% 
+  mutate(mod.content=map_int(entrez.content,function(x){
+    sum(tmp_mod_entrez_set %in% as.character(x))
+  })) 
+
+top_compound_hub_5kb_tbl %>% dplyr::select(chr,parent.hub,mod.content,mod.rank) %>% arrange(desc(mod.content))
+
+top_compound_hub_5kb_coord_tbl<-top_compound_hub_5kb_tbl %>% 
+  mutate(coord=pmap(list(parent.hub,GRange,mod.content),function(parent.hub,GRange,mod.content){
+    tibble(as.data.frame(GRange)) %>% mutate(hub=parent.hub,content=mod.content/length(tmp_mod_entrez_set))
+  })) %>% 
+  dplyr::select(chr,parent.hub,coord)
+coord_tbl<-do.call(bind_rows,top_compound_hub_5kb_coord_tbl$coord)
+
+gg_foot<-coord_tbl%>%
+  mutate(seqnames=fct_relevel(seqnames,paste0('chr',1:22)))%>%
+  ggplot(.,aes(xmin=start,xmax=end,ymin=0,ymax=1,fill=log10(content)))+
+  geom_rect()+
+  facet_grid(seqnames~.)+
+  scale_fill_viridis_c(option="G",limits=c(-5,0))+
+  theme_minimal()
+
+
+gg_foot<-gg_foot +theme(axis.title.y=element_blank(),
+                        axis.text.y=element_blank(),
+                        axis.ticks.y=element_blank())+
+  scale_x_continuous(labels= label_number(scale = 1/1e6,suffix="Mb"))
+
+gg_foot
+
+#----------------
+mod_n<-1
+sem_mod_tbl$GO.tbl[[mod_n]] %>% arrange(FDR)
+
+tmp_mod_entrez_set<-sem_mod_tbl$entrez.content[[mod_n]]
 
 tmp_chi_tbl<-top_compound_hub_5kb_tbl %>% 
   mutate(mod.content=map_int(entrez.content,function(x){
@@ -89,31 +127,22 @@ exp_p<-tmp_chi_tbl$entrez.n/sum(tmp_chi_tbl$entrez.n)
 chi_obj<-chisq.test(tmp_obs,p=exp_p)
 chi_obj$p.value
 chi_obj$observed - chi_obj$expected
+#-----------------------------------
 
-top_compound_hub_5kb_tbl<-top_compound_hub_5kb_tbl %>% 
-  mutate(mod.content=map_int(entrez.content,function(x){
-    sum(tmp_mod_entrez_set %in% as.character(x))
-  }))
-top_compound_hub_5kb_coord_tbl<-top_compound_hub_5kb_tbl %>% 
-  mutate(coord=pmap(list(parent.hub,GRange,mod.content),function(parent.hub,GRange,mod.content){
-    tibble(as.data.frame(GRange)) %>% mutate(hub=parent.hub,content=mod.content/sum(width))
-  })) %>% 
-  dplyr::select(chr,parent.hub,coord)
-coord_tbl<-do.call(bind_rows,top_compound_hub_5kb_coord_tbl$coord)
+up_l<-lapply(sem_mod_tbl$sem.mod,function(mod_n){
 
-gg_foot<-coord_tbl%>%
-  mutate(seqnames=fct_relevel(seqnames,paste0('chr',1:22)))%>%
-  ggplot(.,aes(xmin=start,xmax=end,ymin=0,ymax=1,fill=log10(content)))+
-  geom_rect()+
-  facet_grid(seqnames~.)+
-  scale_fill_viridis_c(option="D")+
-  theme_minimal()
-
-
-gg_foot<-gg_foot +theme(axis.title.y=element_blank(),
-                        axis.text.y=element_blank(),
-                        axis.ticks.y=element_blank())+
-  scale_x_continuous(labels= label_number(scale = 1/1e6,suffix="Mb"))
-
-gg_foot
-
+  tmp_mod_entrez_set<-sem_mod_tbl$entrez.content[[mod_n]]
+  
+  
+  top_compound_hub_5kb_tbl %>% 
+    mutate(mod.content=map_int(entrez.content,function(x){
+      sum(tmp_mod_entrez_set %in% as.character(x))
+    })) %>%
+    filter(mod.content>0) %>% 
+    mutate(sem_mod=mod_n,ID=paste(chr,parent.hub,sep="_")) %>% 
+    dplyr::select(ID) %>% unlist
+  
+})
+names(up_l)<-paste0("sem.mod.",1:length(up_l))
+library(UpSetR)
+upset(fromList(up_l),order.by = "freq")
