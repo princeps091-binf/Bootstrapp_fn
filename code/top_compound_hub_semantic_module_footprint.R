@@ -151,4 +151,37 @@ up_l<-lapply(sem_mod_tbl$sem.mod,function(mod_n){
 })
 names(up_l)<-paste0("sem.mod.",1:length(up_l))
 library(UpSetR)
-upset(fromList(up_l),order.by = "freq")
+upset(fromList(up_l),order.by = "freq",nsets = length(up_l))
+inter_tbl<-as_tibble(fromList(up_l))
+inter_tbl<-inter_tbl %>% 
+  mutate(hubs=unique(unlist(up_l)))
+inter_tbl %>% 
+  filter(sem.mod.1 == 1 & sem.mod.2 == 1 &sem.mod.3 == 1 &sem.mod.4 == 1 &sem.mod.5 == 1 &sem.mod.6 == 1 ) %>% 
+  mutate(res=map_chr(hubs,function(x)strsplit(x,split="_")[[1]][2])) %>% 
+  group_by(res) %>% 
+  summarise(n=n())
+
+top_compound_hub_5kb_tbl %>% 
+  group_by(res) %>% 
+  summarise(n=n())
+
+inter_tbl %>% 
+  mutate(chr=str_split_fixed(hubs,pattern = "_",n=2)[,1]) %>% 
+  mutate(parent.hub=str_split_fixed(hubs,pattern = "_",n=2)[,2]) %>% 
+  dplyr::select(-hubs) %>% 
+  filter(sem.mod.1 == 1 & sem.mod.2 == 1 &sem.mod.3 == 1 &sem.mod.4 == 1 &sem.mod.5 == 1 &sem.mod.6 == 1 ) %>% 
+  dplyr::select(chr,parent.hub) %>% 
+  mutate(set="multi-function") %>% 
+  full_join(.,top_compound_hub_5kb_tbl %>% 
+              dplyr::select(chr,parent.hub,peak.content)) %>% 
+  mutate(set=ifelse(is.na(set),'out',set)) %>% 
+  dplyr::select(peak.content,set) %>% 
+  unnest(cols=c(peak.content)) %>% 
+  distinct() %>% 
+  group_by(set) %>% 
+  summarise(n=n()) %>% 
+  ggplot(.,aes(x="hubs",n,fill=set))+
+  geom_bar(stat="identity")+
+  scale_fill_brewer(palette="Set1")+
+  theme_minimal()
+  
