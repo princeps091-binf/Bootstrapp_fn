@@ -14,6 +14,28 @@ tbl_in_fn<-function(tmp_file){
   
   return(out_tbl)
 }
+
+Build_coord_fn<-function(top_compound_hub_5kb_tbl,spec_res_file){
+  coord_tbl<-do.call(bind_rows,map(unique(top_compound_hub_5kb_tbl$chr),function(chromo){
+    message(chromo)
+    base::load(paste0(spec_res_file,chromo,"_spec_res.Rda"))
+    tmp_tbl<-top_compound_hub_5kb_tbl %>% 
+      filter(chr==chromo) %>% 
+      mutate(bins=chr_spec_res$cl_member[parent.hub]) %>% 
+      mutate(bins=map(bins,as.numeric)) 
+    
+  }))
+}
+
+Build_GRange_fn<-function(chromo,res,bins,res_num){
+  inter_cl_Grange<-   GRanges(seqnames=chromo,
+                              ranges = IRanges(start=bins,
+                                               end=bins + res_num[res]-1
+                              ))
+  inter_cl_Grange<-GenomicRanges::reduce(inter_cl_Grange)
+  return(inter_cl_Grange)
+  
+}
 #-------------------------------------------------------------------------------------------------------
 compound_hub_5kb_file<-"./data/candidate_compound_hub/HMEC_5kb_tss_compound_hub.Rda"
 spec_res_file<-"~/Documents/multires_bhicect/data/HMEC/spec_res/"
@@ -28,7 +50,8 @@ compound_hub_5kb_tbl<-tbl_in_fn(compound_hub_5kb_file)
 gene_conv_tbl<-tbl_in_fn(gene_conv_tbl_file)
 
 sem_mod_tbl<-tbl_in_fn(semantic_module_file)
-
+#-------------------------------------------------------------------------------------------------------
+## Subset the mutually exclusive collection of compound hubs
 top_compound_hub_5kb_tbl<-do.call(bind_rows,map(unique(compound_hub_5kb_tbl$chr),function(chromo){
   tmp_tbl<-compound_hub_5kb_tbl %>% 
     filter(chr==chromo)
@@ -37,34 +60,17 @@ top_compound_hub_5kb_tbl<-do.call(bind_rows,map(unique(compound_hub_5kb_tbl$chr)
   )
   
 }))
-
-top_compound_hub_5kb_tbl<-do.call(bind_rows,map(unique(top_compound_hub_5kb_tbl$chr),function(chromo){
-  message(chromo)
-  base::load(paste0(spec_res_file,chromo,"_spec_res.Rda"))
-  tmp_tbl<-top_compound_hub_5kb_tbl %>% 
-    filter(chr==chromo) %>% 
-    mutate(bins=chr_spec_res$cl_member[parent.hub]) %>% 
-    mutate(bins=map(bins,as.numeric)) 
-  
-}))
-
-top_compound_hub_5kb_tbl<-top_compound_hub_5kb_tbl %>% 
-  mutate(GRange=pmap(list(chr,res,bins),function(chromo,res,bins){
-    inter_cl_Grange<-   GRanges(seqnames=chromo,
-                                ranges = IRanges(start=bins,
-                                                 end=bins + res_num[res]-1,
-                                                 names=paste(chromo,bins,sep='_')
-                                ))
-    inter_cl_Grange<-GenomicRanges::reduce(inter_cl_Grange)
-    return(inter_cl_Grange)
-    
-  }))
-
+## Build GRange object for each top hub
+top_compound_hub_5kb_tbl<-Build_coord_fn(top_compound_hub_5kb_tbl,spec_res_file) %>% 
+    mutate(GRange=pmap(list(chr,res,bins),function(chromo,res,bins){
+      Build_GRange_fn(chromo,res,bins,res_num)
+    }))
+## Compute the ENSG content for each top hub
 top_compound_hub_5kb_tbl<-top_compound_hub_5kb_tbl %>% 
   mutate(ENSG.content=map(GRange,function(x){
     unique(unlist(mcols(gene_GRange)$ENSG[queryHits(findOverlaps(gene_GRange,x))]))
   }))
-
+## Convert the ENSG content to entrez gene content
 top_compound_hub_5kb_tbl<-top_compound_hub_5kb_tbl %>% 
   mutate(entrez.content=map(ENSG.content,function(x){
     return(gene_conv_tbl %>% 
