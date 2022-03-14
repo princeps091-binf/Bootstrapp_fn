@@ -37,11 +37,11 @@ Build_GRange_fn<-function(chromo,res,bins,res_num){
   
 }
 #-------------------------------------------------------------------------------------------------------
-compound_hub_5kb_file<-"./data/candidate_compound_hub/HMEC_5kb_tss_compound_hub.Rda"
-spec_res_file<-"~/Documents/multires_bhicect/data/HMEC/spec_res/"
-gene_GRange_file<-"~/Documents/multires_bhicect/GO_enrichment_viz/data/CAGE_HMEC_gene_GRange.Rda"
+compound_hub_5kb_file<-"./data/candidate_compound_hub/H1_5kb_tss_compound_hub.Rda"
+spec_res_file<-"~/Documents/multires_bhicect/data/H1/Dekker/spec_res/"
+gene_GRange_file<-"~/Documents/multires_bhicect/GO_enrichment_viz/data/CAGE_H1_gene_GRange.Rda"
 gene_conv_tbl_file<-"~/Documents/multires_bhicect/GO_enrichment_viz/data/gene_name_conv_tbl.Rda"
-semantic_module_file<-"~/Documents/multires_bhicect/GO_enrichment_viz/data/semantic_module_tbl/HMEC_semantic_module_tbl.Rda"
+semantic_module_file<-"~/Documents/multires_bhicect/GO_enrichment_viz/data/semantic_module_tbl/H1_semantic_module_tbl.Rda"
 
 gene_GRange<-tbl_in_fn(gene_GRange_file)
 
@@ -79,7 +79,7 @@ top_compound_hub_5kb_tbl<-top_compound_hub_5kb_tbl %>%
              distinct %>% unlist)
   }))
 
-mod_n<-1
+mod_n<-3
 sem_mod_tbl$GO.tbl[[mod_n]] %>% arrange(FDR)
 
 tmp_mod_entrez_set<-sem_mod_tbl$entrez.content[[mod_n]]
@@ -90,21 +90,24 @@ top_compound_hub_5kb_tbl<-top_compound_hub_5kb_tbl %>%
     sum(tmp_mod_entrez_set %in% as.character(x))
   })) 
 
-top_compound_hub_5kb_tbl %>% dplyr::select(chr,parent.hub,mod.content,mod.rank) %>% arrange(desc(mod.content))
+top_compound_hub_5kb_tbl %>% dplyr::select(chr,parent.hub,mod.content) %>% arrange(desc(mod.content))
 
 top_compound_hub_5kb_coord_tbl<-top_compound_hub_5kb_tbl %>% 
   mutate(coord=pmap(list(parent.hub,GRange,mod.content),function(parent.hub,GRange,mod.content){
-    tibble(as.data.frame(GRange)) %>% mutate(hub=parent.hub,content=mod.content/length(tmp_mod_entrez_set))
+    tibble(as.data.frame(GRange)) %>% 
+#      mutate(hub=parent.hub,content=mod.content/length(tmp_mod_entrez_set)) %>% 
+      mutate(hub=parent.hub,content=ifelse(mod.content>0,"in","out"))
   })) %>% 
   dplyr::select(chr,parent.hub,coord)
 coord_tbl<-do.call(bind_rows,top_compound_hub_5kb_coord_tbl$coord)
 
 gg_foot<-coord_tbl%>%
+  filter(grepl("^5kb_",hub)) %>% 
   mutate(seqnames=fct_relevel(seqnames,paste0('chr',1:22)))%>%
-  ggplot(.,aes(xmin=start,xmax=end,ymin=0,ymax=1,fill=log10(content)))+
+  ggplot(.,aes(xmin=start,xmax=end,ymin=0,ymax=1,fill=content))+
   geom_rect()+
   facet_grid(seqnames~.)+
-  scale_fill_viridis_c(option="G",limits=c(-5,0))+
+  scale_fill_brewer(palette="Set1")+
   theme_minimal()
 
 
@@ -115,6 +118,11 @@ gg_foot<-gg_foot +theme(axis.title.y=element_blank(),
 
 gg_foot
 
+coord_tbl %>% 
+  filter(grepl("^5kb_",hub)) %>% 
+  group_by(seqnames,hub) %>% 
+  summarise(w=sum(width)) %>% 
+  ggplot(.,aes(w))+geom_density()+scale_x_log10()
 #----------------
 mod_n<-3
 sem_mod_tbl$GO.tbl[[mod_n]] %>% arrange(FDR)
