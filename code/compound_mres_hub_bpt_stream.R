@@ -2,6 +2,7 @@ library(tidyverse)
 library(furrr)
 library(data.tree)
 library(igraph)
+library(RColorBrewer)
 options(scipen = 999999999)
 res_set <- c('1Mb','500kb','100kb','50kb','10kb','5kb')
 res_num <- c(1e6,5e5,1e5,5e4,1e4,5e3)
@@ -41,8 +42,17 @@ chr_hub_set<-unique(c(tmp_hub_set$node,unique(unlist(node_ancestor[tmp_hub_set$n
 Prune(chr_bpt, function(x) x$name %in% chr_hub_set)
 g<-graph_from_data_frame(ToDataFrameNetwork(chr_bpt))
 chr_hubs<-dagger_hub_tbl %>% filter(chr==chromo ) %>% distinct(node) %>% unlist
-V(g)$color<-ifelse(V(g)$name %in% chr_hubs,"red","grey50")
-plot(g,layout=layout_as_tree(g),vertex.size=2,vertex.label=NA,edge.arrow.size=0)
+
+# Plot BPTs with color code of choice
+
+col_pal<-brewer.pal(3,"Set1")
+
+V(g)$color<-ifelse(V(g)$name %in% chr_hubs,col_pal[1],"grey70")
+plot(g,layout=layout_as_tree(g),vertex.frame.color=NA,vertex.size=2,vertex.label=NA,edge.arrow.size=0)
+png(filename = "~/Documents/multires_bhicect/weeklies/weekly53/img/HMEC_chr19_all_5kb_cage_hubs_bpt.png",width=50,height = 50,units = "mm",res=1000)
+par(mar=c(0,0,0,0))
+plot(g,layout=layout_as_tree(g),vertex.frame.color=NA,vertex.size=2,vertex.label=NA,edge.arrow.size=0)
+dev.off()
 
 top_compound_hubs<-tmp_compound_hub_tbl %>% 
   filter(parent.hub %in% tmp_compound_hub_tbl$parent.hub[which(!(tmp_compound_hub_tbl$parent.hub %in% unique(unlist(tmp_compound_hub_tbl$ch.hub))))]) %>% 
@@ -50,9 +60,13 @@ top_compound_hubs<-tmp_compound_hub_tbl %>%
 
 compound_set<-unique(c(tmp_compound_hub_tbl$parent.hub,unlist(tmp_compound_hub_tbl$ch.hub)))
 
-V(g)$color<-ifelse(V(g)$name %in% top_compound_hubs,"green",
-                   ifelse(V(g)$name %in% compound_set,"orange",
-                          ifelse(V(g)$name %in% chr_hubs, "red","grey50")))
-plot(g,layout=layout_as_tree(g),vertex.size=2,vertex.label=NA,edge.arrow.size=0)
+V(g)$color<-ifelse(V(g)$name %in% top_compound_hubs,col_pal[3],
+                   ifelse(V(g)$name %in% compound_set,col_pal[2],
+                          ifelse(V(g)$name %in% chr_hubs, col_pal[1],"grey70")))
+plot(g,layout=layout_as_tree(g),vertex.frame.color=NA,vertex.size=2,vertex.label=NA,edge.arrow.size=0)
+png(filename = "~/Documents/multires_bhicect/weeklies/weekly53/img/HMEC_chr19_all_top_hubs_bpt.png",width=50,height = 50,units = "mm",res=1000)
+par(mar=c(0,0,0,0))
+plot(g,layout=layout_as_tree(g),vertex.frame.color=NA,vertex.size=2,vertex.label=NA,edge.arrow.size=0)
+dev.off()
 
 

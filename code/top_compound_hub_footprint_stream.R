@@ -31,8 +31,8 @@ cl_reduce_coord_fn<-function(hmec_dagger_01_tbl,tmp_res,res_num){
 }
 
 #-------------------------------------------------------------------------------------------------------
-compound_hub_5kb_file<-"./data/candidate_compound_hub/GM12878_5kb_tss_compound_hub.Rda"
-spec_res_file<-"~/Documents/multires_bhicect/data/GM12878/spec_res/"
+compound_hub_5kb_file<-"./data/candidate_compound_hub/H1_5kb_tss_compound_hub.Rda"
+spec_res_file<-"~/Documents/multires_bhicect/data/H1/Dekker/spec_res/"
 
 compound_hub_5kb_tbl<-tbl_in_fn(compound_hub_5kb_file)
 
@@ -65,7 +65,7 @@ hmec_fdr_tbl<-do.call(bind_rows,lapply(unique(top_compound_hub_5kb_tbl$res),func
 
 gg_foot<-hmec_fdr_tbl%>%
   mutate(seqnames=fct_relevel(seqnames,paste0('chr',1:22)),res=fct_relevel(res,c(res_set[res_set %in% .$res])))%>%
-  ggplot(.,aes(xmin=start,xmax=end,ymin=0,ymax=1,fill=as.factor(res)))+
+  ggplot(.,aes(xmin=start,xmax=end,ymin=0,ymax=1,fill=res))+
   geom_rect()+
   facet_grid(seqnames~.)+
   scale_fill_brewer(palette = "Set1")
@@ -76,3 +76,5 @@ gg_foot<-gg_foot +theme(axis.title.y=element_blank(),
   scale_x_continuous(labels= label_number(scale = 1/1e6,suffix="Mb"))
 
 gg_foot
+
+ggsave(filename = "~/Documents/multires_bhicect/weeklies/weekly53/img/H1_top_hub_foot.png",height = 25,width=15,units = "cm",gg_foot)

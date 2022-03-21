@@ -129,16 +129,17 @@ topo_summary_tbl %>%
   scale_x_log10()+
   facet_wrap(res~.,scales="free")+
   scale_color_brewer(palette="Set1")
-
-topo_summary_tbl %>% 
-  ggplot(.,aes(chunk.n,color=cell.line))+
-  geom_density()+
-  facet_wrap(res~.,scales="free")+
-  scale_color_brewer(palette="Set1")
-
+ggsave(filename = "~/Documents/multires_bhicect/weeklies/weekly53/img/top_hub_foot_density.png")
 
 topo_summary_tbl %>% 
   ggplot(.,aes(peak.content,color=cell.line))+
+  geom_density()+
+  facet_wrap(res~.,scales="free")+
+  scale_color_brewer(palette="Set1")
+ggsave(filename = "~/Documents/multires_bhicect/weeklies/weekly53/img/top_hub_peak_content_density.png")
+
+topo_summary_tbl %>% 
+  ggplot(.,aes(chunk.n,color=cell.line))+
   geom_density()+
   facet_wrap(res~.,scales="free")+
   scale_color_brewer(palette="Set1")
