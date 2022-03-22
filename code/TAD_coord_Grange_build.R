@@ -1,8 +1,4 @@
 # Produce Coordinate tables for TADs
-renv::install("tidyverse")
-renv::install("bioc::GenomicRanges")
-renv::install("furrr")
-
 library(tidyverse)
 library(GenomicRanges)
 library(furrr)
@@ -12,8 +8,8 @@ res_num <- c(1e6,5e5,1e5,5e4,1e4,5e3)
 names(res_num)<-res_set
 #--------------------------------------------------------------------
 ## Import table with Feature coordinate
-feature_file<-"~/Documents/multires_bhicect/data/HMEC/GSE63525_HMEC_Arrowhead_domainlist.txt.gz"
-out_folder<-"./data/TAD_GRange/"
+feature_file<-"~/Documents/multires_bhicect/data/GM12878/GSE63525_GM12878_primary+replicate_Arrowhead_domainlist.txt.gz"
+out_folder<-"./data/GRanges/TAD_GRanges/"
 feature_tbl<-read_delim(feature_file,
                                    delim = "\t", escape_double = FALSE,
                                    col_names = T, trim_ws = TRUE)
@@ -31,9 +27,9 @@ feature_tbl<-feature_tbl %>%
   dplyr::select(chr1,x1,x2,GRange)%>% 
   tidyr::unite(ID,chr1,x1,x2,sep="_",remove=F) %>% 
   dplyr::select(ID,chr1,GRange) %>% dplyr::rename(chr=chr1)
-lapply(unique(feature_tbl$chr),function(chromo){
+plan(sequential)
+for(chromo in unique(feature_tbl$chr)){
+  message(chromo)
   chr_tbl<-feature_tbl %>% filter(chr==chromo)
-  save(chr_tbl,file=paste0(out_folder,chromo,"_TAD.Rda"))
-  
-  
-})
+  base::save(chr_tbl,file=paste0(out_folder,chromo,"_TAD.Rda"))
+}
