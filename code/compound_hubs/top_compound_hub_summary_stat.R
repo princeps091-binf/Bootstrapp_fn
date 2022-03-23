@@ -103,7 +103,9 @@ topo_summary_tbl %>%
   mutate(res=fct_relevel(res,names(res_num))) %>% 
   ggplot(.,aes(cell.line,n,fill=res))+
   geom_bar(stat="identity",position="fill")+
+  ylab("number of clusters")+
   scale_fill_viridis_d()
+ggsave(filename = "~/Documents/multires_bhicect/weeklies/weekly53/img/top_hub_ncl_bar.png")
 
 topo_summary_tbl %>% 
   group_by(cell.line,res) %>% 
@@ -111,7 +113,9 @@ topo_summary_tbl %>%
   mutate(res=fct_relevel(res,names(res_num))) %>% 
   ggplot(.,aes(cell.line,foot,fill=res))+
   geom_bar(stat="identity",position="fill")+
+  ylab("cluster footprint")+
   scale_fill_viridis_d()
+ggsave(filename = "~/Documents/multires_bhicect/weeklies/weekly53/img/top_hub_foot_bar.png")
 
 
 topo_summary_tbl %>% 
@@ -119,8 +123,10 @@ topo_summary_tbl %>%
   summarise(n=n(),foot=sum(foot),peak=sum(peak.content)) %>% 
   mutate(res=fct_relevel(res,names(res_num))) %>% 
   ggplot(.,aes(cell.line,peak,fill=res))+
+  ylab("CAGE-peak content")+
   geom_bar(stat="identity",position="fill")+
   scale_fill_viridis_d()
+ggsave(filename = "~/Documents/multires_bhicect/weeklies/weekly53/img/top_hub_npeak_bar.png")
 
 
 topo_summary_tbl %>% 
