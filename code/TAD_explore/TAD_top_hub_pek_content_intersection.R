@@ -1,3 +1,4 @@
+library(GenomicRanges)
 library(tidyverse)
 library(furrr)
 
@@ -39,11 +40,11 @@ Build_GRange_fn<-function(chromo,res,bins,res_num){
 }
 
 #-----------------------------------------
-hub_5kb_file<-"./data/candidate_compound_hub/H1_5kb_tss_compound_hub.Rda"
-spec_res_file<-"~/Documents/multires_bhicect/data/H1/Dekker/spec_res/"
-TAD_file<-"./data/pval_tbl/CAGE_union_H1_TAD_pval_tbl.Rda"
+hub_5kb_file<-"./data/candidate_compound_hub/GM12878_5kb_tss_compound_hub.Rda"
+spec_res_file<-"~/Documents/multires_bhicect/data/GM12878/spec_res/"
+TAD_file<-"./data/pval_tbl/CAGE_union_GM12878_TAD_pval_tbl.Rda"
 
-cage_peak_Grange_file<-"./data/GRanges/CAGE_union_H1_Grange.Rda"
+cage_peak_Grange_file<-"./data/GRanges/CAGE_union_GM12878_Grange.Rda"
 
 TAD_tbl<-get_obj_in_fn(TAD_file)%>% 
   group_by(chr) %>% 
