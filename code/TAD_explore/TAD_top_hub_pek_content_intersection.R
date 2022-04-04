@@ -40,11 +40,11 @@ Build_GRange_fn<-function(chromo,res,bins,res_num){
 }
 
 #-----------------------------------------
-hub_5kb_file<-"./data/candidate_compound_hub/GM12878_5kb_tss_compound_hub.Rda"
-spec_res_file<-"~/Documents/multires_bhicect/data/GM12878/spec_res/"
-TAD_file<-"./data/pval_tbl/CAGE_union_GM12878_TAD_pval_tbl.Rda"
+hub_5kb_file<-"./data/candidate_compound_hub/H1_5kb_tss_compound_hub.Rda"
+spec_res_file<-"~/Documents/multires_bhicect/data/H1/Dekker/spec_res/"
+TAD_file<-"./data/pval_tbl/CAGE_union_H1_TAD_pval_tbl.Rda"
 
-cage_peak_Grange_file<-"./data/GRanges/CAGE_union_GM12878_Grange.Rda"
+cage_peak_Grange_file<-"./data/GRanges/CAGE_union_H1_Grange.Rda"
 
 TAD_tbl<-get_obj_in_fn(TAD_file)%>% 
   group_by(chr) %>% 
@@ -90,9 +90,14 @@ plan(sequential)
 TAD_GRange<-reduce(do.call("c",unlist(TAD_tbl$GRange)))
 top_hub_GRange<-reduce(do.call("c",unlist(top_compound_hub_5kb_tbl$GRange)))
 
-sum(width(intersect(TAD_GRange,top_hub_GRange)))/sum(width(reduce(c(TAD_GRange,top_hub_GRange))))
-sum(width(intersect(TAD_GRange,top_hub_GRange)))/sum(width(top_hub_GRange))
-sum(width(intersect(TAD_GRange,top_hub_GRange)))/sum(width(TAD_GRange))
+tmp_n<-c(sum(width(setdiff(TAD_GRange,top_hub_GRange))),
+sum(width(setdiff(top_hub_GRange,TAD_GRange))),
+sum(width(intersect(TAD_GRange,top_hub_GRange))))
+
+tibble(set=c("TAD","hub","Intersect"),n=tmp_n) %>% 
+  ggplot(.,aes(x="cl",n,fill=set))+
+  geom_bar(stat="identity")+
+  scale_fill_brewer(palette="RdBu")
 
 
 up_list<-list(TAD=unique(unlist(TAD_tbl$peak.content)),top.hub=unique(unlist(top_compound_hub_5kb_tbl$peak.content)))
