@@ -94,15 +94,15 @@ tmp_n<-c(sum(width(setdiff(TAD_GRange,top_hub_GRange))),
 sum(width(setdiff(top_hub_GRange,TAD_GRange))),
 sum(width(intersect(TAD_GRange,top_hub_GRange))))
 
-tibble(set=c("TAD","hub","Intersect"),n=tmp_n) %>% 
+gg_inter<-tibble(set=c("TAD","hub","Intersect"),n=tmp_n) %>% 
   ggplot(.,aes(x="cl",n,fill=set))+
   geom_bar(stat="identity")+
   scale_fill_brewer(palette="RdBu")
-
+gg_inter
+ggsave(filename = "~/Documents/multires_bhicect/weeklies/weekly55/img/GM12878_TAD_hub_intersect.png",gg_inter)
 
 up_list<-list(TAD=unique(unlist(TAD_tbl$peak.content)),top.hub=unique(unlist(top_compound_hub_5kb_tbl$peak.content)))
 
 library(UpSetR)
 upset(fromList(up_list),order.by = "freq")
-
 
