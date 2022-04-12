@@ -163,7 +163,7 @@ compute_rejected_test_fn<-function(alpha,node_m_lvl_tbl,node_dagger_parent,node_
   
 }
 
-mres_DAGGER_fn<-function(chr_pval_tbl,chromo,BHiCect_res_file,alpha_seq){
+mres_DAGGER_fn<-function(chr_pval_tbl,chromo,BHiCect_res_file,alpha_seq,res_num){
   cat(green(chromo), ": DAGGER initialised \n")
   # Build the BHiCect tree
   load(paste0(BHiCect_res_file,chromo,"_spec_res.Rda"))
@@ -203,12 +203,19 @@ mres_DAGGER_fn<-function(chr_pval_tbl,chromo,BHiCect_res_file,alpha_seq){
   # Loop through each resolution to compute the DAGGER p-value correction
   tmp_res_l<-vector('list',length(unique(chr_pval_tbl$res)))
   names(tmp_res_l)<-unique(chr_pval_tbl$res)
-  for(tmp_res in unique(chr_pval_tbl$res)){
+  chr_res_set<-names(sort(res_num[names(tmp_res_l)]))
+  for(tmp_res in chr_res_set){
     cat(green(chromo), " DAGGER at ", tmp_res, " \n")
     res_cage_node<-unlist(chr_pval_tbl%>%filter(res==tmp_res)%>%dplyr::select(cl))
     res_cage_set<-unique(c(res_cage_node,grep(paste0(tmp_res),unique(unlist(node_ancestor[res_cage_node])),value=T)))
     #Filter out any cluster without any enriched BPT-children at higher resolution
-    
+    if(tmp_res != "5kb"){
+      res_cage_set<-res_cage_set[sapply(res_cage_set,function(x){
+        any(unlist(lapply(p_node_ancestor[unlist(do.call(bind_rows,tmp_res_l)$node)],function(y){
+          x %in% y
+        })))
+      })]
+    }
     if(length(res_cage_set)<2){
       tmp_pval<-unlist(chr_pval_tbl%>%filter(cl%in%res_cage_set)%>%dplyr::select(emp.pval))
       tmp_res_l[[tmp_res]]<-tibble(chr=chromo,res=tmp_res,node=res_cage_set,FDR=NA,emp.pval=tmp_pval)
