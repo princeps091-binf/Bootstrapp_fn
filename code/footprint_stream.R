@@ -33,11 +33,11 @@ cl_reduce_coord_fn<-function(hmec_dagger_01_tbl,tmp_res,res_num){
 
 #-------------------------------------------------------------------------------------------------------
 # table with cluster of interest
-union_hub_file<-"./data/DAGGER_tbl/HMEC_union_dagger_tbl.Rda"
-union_cl_file<-"./data/pval_tbl/CAGE_union_HMEC_pval_tbl.Rda"
+union_hub_file<-"./data/DAGGER_tbl/H1_union_trans_res_dagger_tbl.Rda"
+union_cl_file<-"./data/pval_tbl/CAGE_union_H1_pval_tbl.Rda"
 
-hmec_dagger_01_tbl<-tbl_in_fn(union_hub_file)
 cl_union_tbl<-tbl_in_fn(union_cl_file)
+hmec_dagger_01_tbl<-tbl_in_fn(union_hub_file) #%>% filter(res == "5kb" | res == "10kb")
 hmec_dagger_01_tbl<-hmec_dagger_01_tbl %>% left_join(.,cl_union_tbl %>% dplyr::rename(node=cl)%>% dplyr::select(chr,node,res,bins))
 #-------------------------------------------------------------------------------------------------------
 # Spectral clustering results
@@ -48,17 +48,17 @@ hmec_fdr_tbl<-do.call(bind_rows,lapply(unique(hmec_dagger_01_tbl$res),function(f
 
 
 gg_foot<-hmec_fdr_tbl%>%
-  mutate(seqnames=fct_relevel(seqnames,paste0('chr',1:22)),res=fct_relevel(res,c(res_set[res_set %in% .$res])))%>%
-  ggplot(.,aes(xmin=start,xmax=end,ymin=0,ymax=1,fill=as.factor(res)))+
+  mutate(seqnames=fct_relevel(seqnames,paste0('chr',1:22)),res=fct_relevel(res,names(sort(res_num[res_set %in% .$res]))))%>%
+  ggplot(.,aes(xmin=start,xmax=end,ymin=0,ymax=1,fill=res))+
   geom_rect()+
-  facet_grid(seqnames~res)+
+  facet_grid(seqnames~.)+
   scale_fill_brewer(palette = "Dark2")
 
 gg_foot<-gg_foot +theme(axis.title.y=element_blank(),
                         axis.text.y=element_blank(),
                         axis.ticks.y=element_blank(),
-                        legend.position="none")+
+                        legend.position="bottom")+
   scale_x_continuous(labels= label_number(scale = 1/1e6,suffix="Mb"))
 
 gg_foot
-ggsave("~/Documents/multires_bhicect/weeklies/IFI_meeting/img/hmec_hub_foot.png",width = 40,height = 23,units = "cm",gg_foot)
+ggsave("~/Documents/multires_bhicect/weeklies/group_meeting/group_meeting_04_2022/img/H1_hub_foot.png",width = 40,height = 23,units = "cm",gg_foot)
