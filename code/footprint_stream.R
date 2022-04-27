@@ -33,8 +33,8 @@ cl_reduce_coord_fn<-function(hmec_dagger_01_tbl,tmp_res,res_num){
 
 #-------------------------------------------------------------------------------------------------------
 # table with cluster of interest
-union_hub_file<-"./data/DAGGER_tbl/H1_union_trans_res_dagger_tbl.Rda"
-union_cl_file<-"./data/pval_tbl/CAGE_union_H1_pval_tbl.Rda"
+union_hub_file<-"./data/DAGGER_tbl/trans_res/HMEC_union_top_trans_res_dagger_tbl.Rda"
+union_cl_file<-"./data/pval_tbl/CAGE_union_HMEC_pval_tbl.Rda"
 
 cl_union_tbl<-tbl_in_fn(union_cl_file)
 hmec_dagger_01_tbl<-tbl_in_fn(union_hub_file) #%>% filter(res == "5kb" | res == "10kb")
@@ -48,10 +48,11 @@ hmec_fdr_tbl<-do.call(bind_rows,lapply(unique(hmec_dagger_01_tbl$res),function(f
 
 
 gg_foot<-hmec_fdr_tbl%>%
+#  filter(res %in% c("5kb") & seqnames == "chr1") %>% 
   mutate(seqnames=fct_relevel(seqnames,paste0('chr',1:22)),res=fct_relevel(res,names(sort(res_num[res_set %in% .$res]))))%>%
   ggplot(.,aes(xmin=start,xmax=end,ymin=0,ymax=1,fill=res))+
   geom_rect()+
-  facet_grid(seqnames~.)+
+  facet_grid(seqnames~res)+
   scale_fill_brewer(palette = "Dark2")
 
 gg_foot<-gg_foot +theme(axis.title.y=element_blank(),
