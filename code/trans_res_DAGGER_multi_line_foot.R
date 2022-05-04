@@ -86,7 +86,7 @@ plan(sequential)
 gg_foot<-do.call(bind_rows,rn_hub_foot_tbl) %>% 
   bind_rows(.,tmp_cl_tbl %>% mutate(boot="obs") %>% dplyr::rename(seqnames=chrom)) %>% 
   mutate(seqnames=fct_relevel(seqnames,paste0('chr',1:22)))%>%
-  ggplot(.,aes(xmin=start,xmax=end,ymin=0,ymax=1,fill=boot))+
+  ggplot(.,aes(xmin=start,xmax=end,ymin=0,ymax=1))+
   geom_rect()+
   facet_grid(seqnames~boot)+
   scale_fill_brewer(palette = "Dark2")
@@ -98,6 +98,7 @@ gg_foot<-gg_foot +theme(axis.title.y=element_blank(),
   scale_x_continuous(labels= label_number(scale = 1/1e6,suffix="Mb"))
 
 gg_foot
+ggsave("~/Documents/multires_bhicect/weeklies/weekly57/img/top_hub_rn_foot.png",width = 40,height = 23,units = "cm",gg_foot)
 
 hub_coord_tbl<-do.call(bind_rows,lapply(seq_along(hub_GRanges_l),function(x){
   inter_tbl<-tibble(as.data.frame(hub_GRanges_l[[x]])) %>% mutate(line=names(hub_GRanges_l)[x]) 
@@ -118,3 +119,4 @@ gg_foot<-gg_foot +theme(axis.title.y=element_blank(),
   scale_x_continuous(labels= label_number(scale = 1/1e6,suffix="Mb"))
 
 gg_foot
+ggsave("~/Documents/multires_bhicect/weeklies/weekly57/img/top_hub_foot.png",width = 40,height = 23,units = "cm",gg_foot)
