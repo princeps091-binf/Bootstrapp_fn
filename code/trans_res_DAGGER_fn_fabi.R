@@ -13,6 +13,14 @@ res_num <- c(1e6,5e5,1e5,5e4,1e4,5e3)
 names(res_num)<-res_set
 #--------------------------
 # utils Fn.
+get_tbl_in_fn<-function(tmp_file){
+  out_tbl<-get(load(tmp_file))
+  tmp_obj<-names(mget(load(tmp_file)))
+  rm(list=tmp_obj)
+  rm(tmp_obj)
+  return(out_tbl)
+}
+
 rej_fn<-function(nodes,lvl,num_rejected,node_pval,ms,ls,l,alpha){
   #pick node effective node and leaf number
   ms_d<-ms[nodes]
@@ -254,26 +262,29 @@ mres_DAGGER_fn<-function(chr_pval_tbl,chromo,BHiCect_res_file,alpha_seq,res_num)
 
 #--------------------------
 feature_coord_file<-"./data/CAGE_union_coord_HMEC_tbl.Rda"
-feature_pval_file<-"~/Documents/multires_bhicect/Bootstrapping-Pipeline-Python-R/results/HMEC.CTCF.tsv"
+feature_pval_file<-"~/Documents/multires_bhicect/Bootstrapping-Pipeline-Python-R/results/HMEC.CAGE.tsv"
 
-BHiCect_res_file<-"~/Documents/multires_bhicect/data/GM12878/spec_res/"
+BHiCect_res_file<-"~/Documents/multires_bhicect/data/HMEC/spec_res/"
 
-out_file<-"./data/DAGGER_tbl/GM12878_union_trans_res_dagger_tbl.Rda"
+out_file<-"./data/DAGGER_tbl/HMEC_union_trans_res_dagger_fabi_tbl.Rda"
 
-feature_coord_tbl<-get(load(feature_coord_file))
-tmp_obj<-names(mget(load(feature_coord_file)))
-rm(list=tmp_obj)
-rm(tmp_obj)
+feature_coord_tbl<-get_tbl_in_fn(feature_coord_file)
 
-feature_pval_tbl<-get(load(feature_pval_file))
-tmp_obj<-names(mget(load(feature_pval_file)))
-rm(list=tmp_obj)
-rm(tmp_obj)
-#------------------
-feature_pval_tbl<-read_tsv(feature_pval_file)
+feature_pval_tbl<-read_tsv(feature_pval_file) %>% 
+  dplyr::rename(chr=chromosome,cl=name,emp.pval=p_value)
 
 #------------------
 chr_set<-unique(feature_pval_tbl$chr)
+
+feature_pval_tbl<-do.call(bind_rows,map(chr_set,function(chromo){
+  message(chromo)
+  load(paste0(BHiCect_res_file,chromo,"_spec_res.Rda"))
+  feature_pval_tbl %>% 
+    filter(chr==chromo) %>% 
+    mutate(bins=chr_spec_res$cl_member[cl],
+           res=str_split_fixed(cl,"_",4)[,1])
+}))
+
 dagger_mres_l<-lapply(chr_set,function(chromo){
   chr_feature_coord_tbl<-feature_coord_tbl %>% filter(chr==chromo)
   chr_pval_tbl<-feature_pval_tbl %>% filter(chr==chromo)
