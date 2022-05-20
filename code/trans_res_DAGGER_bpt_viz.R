@@ -10,8 +10,8 @@ names(res_num)<-res_set
 
 #-----------------------------------------
 input_data_fn<-function(tmp_file){
-  out_tbl<-get(load(tmp_file))
-  tmp_obj<-names(mget(load(tmp_file)))
+  out_tbl<-get(base::load(tmp_file))
+  tmp_obj<-names(mget(base::load(tmp_file)))
   rm(list=tmp_obj)
   rm(tmp_obj)
   return(out_tbl) 
@@ -20,7 +20,7 @@ input_data_fn<-function(tmp_file){
 #-----------------------------------------
 union_file<-"./data/pval_tbl/CAGE_union_HMEC_pval_tbl.Rda"
 spec_res_file<-"~/Documents/multires_bhicect/data/HMEC/spec_res/"
-compound_hub_5kb_file<-"./data/DAGGER_tbl/HMEC_union_trans_res_dagger_tbl.Rda"
+compound_hub_5kb_file<-"./data/DAGGER_tbl/trans_res/HMEC_union_trans_res_dagger_tbl.Rda"
 
 dagger_hub_tbl<-input_data_fn(union_file)
 compound_hub_5kb_tbl<-input_data_fn(compound_hub_5kb_file)
