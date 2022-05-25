@@ -267,6 +267,7 @@ feature_pval_file<-"~/Documents/multires_bhicect/Bootstrapping-Pipeline-Python-R
 BHiCect_res_file<-"~/Documents/multires_bhicect/data/HMEC/spec_res/"
 
 out_file<-"./data/DAGGER_tbl/HMEC_union_trans_res_dagger_fabi_tbl.Rda"
+out_tsv<-"./data/DAGGER_tbl/HMEC_union_trans_res_dagger_fabrizzio_tbl.tsv"
 
 feature_coord_tbl<-get_tbl_in_fn(feature_coord_file)
 
@@ -298,3 +299,4 @@ dagger_mres_l<-lapply(chr_set,function(chromo){
 })
 dagger_mres_tbl<-do.call(bind_rows,dagger_mres_l)
 save(dagger_mres_tbl,file=out_file)
+write_tsv(dagger_mres_tbl,file=out_tsv)
