@@ -16,9 +16,9 @@ get_obj_in_fn<-function(file){
 }
 #-----------------------------------------
 # explicit evaluation of ancestry
-spec_res_file<-"~/Documents/multires_bhicect/data/H1/Dekker/spec_res/"
-hub_file<-"./data/DAGGER_tbl/trans_res/H1_union_trans_res_dagger_tbl.Rda"
-out_file<-"./data/DAGGER_tbl/trans_res/H1_union_top_trans_res_dagger_tbl.Rda"
+spec_res_file<-"~/Documents/multires_bhicect/data/HMEC/spec_res/"
+hub_file<-"./data/DAGGER_tbl/HMEC_union_trans_res_dagger_fabi_tbl.Rda"
+out_file<-"./data/DAGGER_tbl/HMEC_union_top_trans_res_dagger_fabi_tbl.Rda"
 
 hub_tbl<-get_obj_in_fn(hub_file)
 top_cl_tbl<-do.call(bind_rows,map(unique(hub_tbl$chr),function(chromo){
