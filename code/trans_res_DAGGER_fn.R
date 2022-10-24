@@ -257,7 +257,7 @@ feature_coord_file<-"./data/CAGE_union_coord_GM12878_tbl.Rda"
 feature_pval_file<-"./data/pval_tbl/CAGE_union_GM12878_pval_tbl.Rda"
 BHiCect_res_file<-"~/Documents/multires_bhicect/data/GM12878/spec_res/"
 
-out_file<-"./data/DAGGER_tbl/GM12878_union_trans_res_dagger_tbl.Rda"
+out_file<-"./data/DAGGER_tbl/trans_res/FDR_sensitivity/GM12878_union_trans_res_mFDR_dagger_tbl.Rda"
 
 feature_coord_tbl<-get(load(feature_coord_file))
 tmp_obj<-names(mget(load(feature_coord_file)))
@@ -275,7 +275,9 @@ dagger_mres_l<-lapply(chr_set,function(chromo){
   cat(green(chromo), ": select clusters with two feature-containing bins \n")
   chr_pval_tbl<-detect_inter_cage_cl_fn(chr_feature_coord_tbl,chr_pval_tbl,res_num) %>% 
     filter(feature.bin>1)
-  alpha_seq<-c(0.01)
+#  alpha_seq<-c(0.01)
+  alpha_seq<-seq(0.001,0.1,length.out=51)
+  
   
   return(mres_DAGGER_fn(chr_pval_tbl,chromo,BHiCect_res_file,alpha_seq,res_num))
   

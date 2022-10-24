@@ -39,7 +39,8 @@ cage_count<-vroom("~/Documents/multires_bhicect/data/epi_data/hg19.cage_peak_pha
 
 # Sample set corresponding to the cell-line of interest
 ## grep("K562",colnames(cage),value = T)
-
+## grep("Fibroblast%20-%20Lung",colnames(cage),value = T)
+IMR90<-c("CNhs12500","CNhs11380","CNhs12029")
 MDA<-"CNhs10736"
 K562<-c("CNhs12334", "CNhs12335", 'CNhs12336', 'CNhs11250', 'CNhs12458', 'CNhs12684','CNhs12786')
 MCF7<-c("CNhs11943","CNhs12564","CNhs12475","CNhs12703")
