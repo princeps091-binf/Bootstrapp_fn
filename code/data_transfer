@@ -1,0 +1,1 @@
+rsync ~/Documents/multires_bhicect/data/epi_data/fn_BED/* vipink@biotin2.hpc.uio.no:~/data_transfer/fn_BED
