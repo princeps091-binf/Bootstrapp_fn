@@ -12,7 +12,7 @@ res_num <- c(1e6L, 5e5L, 1e5L, 5e4L, 1e4L, 5e3L)
 names(res_num) <- res_set
 ###############################
 #Snakemake
-clusters_folder <- snakemake@input
+#clusters_folder <- snakemake@input
 ###############################
 # Direct assignment
 ###############################
@@ -168,8 +168,9 @@ names(fn_bed_l)<-fn_file
 
 n_vec<-feature_annotation_fn(txdb,chr_feature_GRange,fn_file)
 # Bootstrap
+nboot<-1e4
 plan(multisession, workers=4)
-boot_bool<-future_map(1:10000,function(i){
+boot_bool<-future_map(1:nboot,function(i){
   rnp_Grange<-rn_feature_GRange_build_fn(n_vec,fn_bed_l,hg19_coord,tmp_cage_tbl,fn_file)
   # Compare with obs
   return(countOverlaps(cl_list,rnp_Grange) >= countOverlaps(cl_list,chr_feature_GRange))
@@ -177,5 +178,5 @@ boot_bool<-future_map(1:10000,function(i){
 })
 plan(sequential)
 #Compute p-value
-(apply(do.call(cbind,boot_bool),1,sum)+1)/(1e4+1)
+(apply(do.call(cbind,boot_bool),1,sum)+1)/(nboot+1)
 
