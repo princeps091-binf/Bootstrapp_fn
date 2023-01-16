@@ -12,6 +12,10 @@ renv::install("crayon")
 renv::install("bedr")
 renv::install("UpSetR")
 renv::install("svglite")
+renv::install("bedr")
+renv::install("pkgload")
+
+renv::install("PhanstielLab/bedtoolsr")
 
 renv::install("bioc::GenomicRanges")
 renv::install("bioc::TxDb.Hsapiens.UCSC.hg19.knownGene")

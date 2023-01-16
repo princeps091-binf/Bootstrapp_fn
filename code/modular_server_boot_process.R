@@ -1,18 +1,16 @@
 library(GenomicRanges)
 library(tidyverse)
+library(readr)
 library(valr)
 library(crayon)
 library(furrr)
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 library(ChIPseeker)
 library(org.Hs.eg.db)
-
 res_set <- c("1Mb", "500kb", "100kb", "50kb", "10kb", "5kb")
 res_num <- c(1e6L, 5e5L, 1e5L, 5e4L, 1e4L, 5e3L)
 names(res_num) <- res_set
 ###############################
-#Snakemake
-#clusters_folder <- snakemake@input
 ###############################
 # Get Rda files in
 get_obj_in_fn<-function(file){
@@ -57,7 +55,7 @@ build_rn_chr_content<-function(peakAnno,chr_feature_Grange,fn_file){
 # Generate random chromosome
 rn_feature_GRange_build_fn<-function(n_vec,fn_bed_l,hg19_coord,tmp_cage_tbl,fn_file){
   
-
+  
   rn_fn_coord_l<-vector('list',length(n_vec))
   names(rn_fn_coord_l)<-names(n_vec)
   for(f in names(n_vec)){
@@ -69,9 +67,9 @@ rn_feature_GRange_build_fn<-function(n_vec,fn_bed_l,hg19_coord,tmp_cage_tbl,fn_f
         class = c("try-error", "character")
       )
       while("try-error" %in% class(rn_fn_coord_l[[f]])){
-        rn_fn_coord_l[[f]]<-try(bed_shuffle(tmp_cage_tbl%>%sample_n(tmp_n),genome = hg19_coord,excl = fn_bed_l[[f]],within = T,max_tries=1e3),silent=T)
+        rn_fn_coord_l[[f]]<-try(bed_shuffle(tmp_cage_tbl%>%sample_n(tmp_n),genome = hg19_coord,excl = fn_bed_l[[f]],within = T,max_tries=1e6),silent=T)
       }
-
+      
     }
     if(!(grepl("inter_no.BED$",fn_file[f]))){
       rn_fn_coord_l[[f]]<-structure(
@@ -79,7 +77,7 @@ rn_feature_GRange_build_fn<-function(n_vec,fn_bed_l,hg19_coord,tmp_cage_tbl,fn_f
         class = c("try-error", "character")
       )
       while("try-error" %in% class(rn_fn_coord_l[[f]])){
-        rn_fn_coord_l[[f]]<-try(valr::bed_shuffle(x = tmp_cage_tbl%>%sample_n(tmp_n),genome = hg19_coord,incl = fn_bed_l[[f]],within=T,max_tries=1e3),silent=T)
+        rn_fn_coord_l[[f]]<-try(valr::bed_shuffle(x = tmp_cage_tbl%>%sample_n(tmp_n),genome = hg19_coord,incl = fn_bed_l[[f]],within=T,max_tries=1e6),silent=T)
         
       }
       # Collect the successful shuffling by eliminating the shuffles producing try-error objects
@@ -91,7 +89,7 @@ rn_feature_GRange_build_fn<-function(n_vec,fn_bed_l,hg19_coord,tmp_cage_tbl,fn_f
                                        end=rn_fn_coord_tbl$end)
   )
   
-return(rnp_Grange)
+  return(rnp_Grange)
 }
 
 ###############################
@@ -128,14 +126,14 @@ filter_cluster_fn<-function(cl_GRange_tbl,chr_feature_GRange,chromo,nworker){
 ###############################
 # Load data
 ## load clusters
-res_folder<-"~/Documents/multires_bhicect/data/GM12878/spec_res/"
+res_folder<-"~/data_transfer/determinate_bhicect2/GM12878/"
 res_file<-"_spec_res.Rda"
 
 ## load feature
-feature_file<-"./data/GRanges/CAGE_union_HMEC_Grange.Rda"
+feature_file<-"~/data_transfer/CAGE_GRange/CAGE_union_GM12878_Grange.Rda"
 ## Folder with functional bed files
-fn_repo<-"~/Documents/multires_bhicect/data/epi_data/fn_BED/"
-genome_file<-"~/Documents/multires_bhicect/data/hg19.genome"
+fn_repo<-"~/data_transfer/fn_BED/"
+genome_file<-"~/data_transfer/hg19.genome"
 ###############################
 # Genome-wide features
 hg19_coord <- read_delim(genome_file, 
@@ -150,57 +148,60 @@ feature_GRange<-get_obj_in_fn(feature_file)
 ###############################
 chromo<-"chr1"
 #cl_GRange_tbl<-get_obj_in_fn(paste0(cl_folder,chromo,cl_file))
-
-chr_feature_GRange<-feature_GRange[seqnames(feature_GRange)==chromo]
-peakAnno <- annotatePeak(chr_feature_GRange, tssRegion=c(-3000, 3000),TxDb=txdb, annoDb="org.Hs.eg.db",verbose = F)
-rm(ChIPseekerEnv,envir = globalenv())
-
-cl_res_tbl<-build_chr_cl_GRange_tbl(res_folder,res_file,chromo)
-
-ok_cl_GRange_tbl<-filter_cluster_fn(cl_res_tbl,chr_feature_GRange,chromo,4) %>% 
-  filter(ok.cl)
-
-plan(cluster, workers = 3)
-ok_cl_GRange_tbl<-ok_cl_GRange_tbl %>% mutate(GRange=future_pmap(list(chr,bins,res),function(chr,bins,res){
-  return(GRanges(seqnames=chr,
-                 ranges = IRanges(start=as.numeric(bins),
-                                  end=as.numeric(bins)+res_num[res]-1
-                 )))
+chr_set<-str_split_fixed(list.files(res_folder),'_',2)[,1]
+for(chromo in chr_set){
+  message(chromo)
+  chr_feature_GRange<-feature_GRange[seqnames(feature_GRange)==chromo]
+  peakAnno <- annotatePeak(chr_feature_GRange, tssRegion=c(-3000, 3000),TxDb=txdb, annoDb="org.Hs.eg.db",verbose = F)
+  rm(ChIPseekerEnv,envir = globalenv())
   
+  cl_res_tbl<-build_chr_cl_GRange_tbl(res_folder,res_file,chromo)
   
-}))
-plan(sequential)
-
-cl_list<-GRangesList(ok_cl_GRange_tbl$GRange)  
-
-tmp_cage_tbl<-chr_feature_GRange %>% as_tibble %>% dplyr::select(seqnames,start,end)%>%dplyr::rename(chrom=seqnames)
-
-# Compute feature genome-annotation
-fn_folder<-paste0(fn_repo,chromo,"/")
-fn_file<-grep('BED$',list.files(fn_folder),value = T)
-fn_bed_l<-lapply(fn_file,function(f){
-  read_bed(paste0(fn_folder,f),n_fields = 3)
-})
-names(fn_bed_l)<-fn_file
-
-# Bootstrap
-nboot<-1e4
-obs_count<-countOverlaps(cl_list,chr_feature_GRange)
-plan(cluster, workers=4)
-boot_bool<-future_map(1:nboot,function(i){
-  # Build random chromosome content
-  n_vec<-build_rn_chr_content(peakAnno,chr_feature_GRange,fn_file)
-  # Build random chromosome 
-  rnp_Grange<-rn_feature_GRange_build_fn(n_vec,fn_bed_l,hg19_coord,tmp_cage_tbl,fn_file)
-  # Compare with obs
-  return(countOverlaps(cl_list,rnp_Grange) >= obs_count)
+  ok_cl_GRange_tbl<-filter_cluster_fn(cl_res_tbl,chr_feature_GRange,chromo,15) %>% 
+    filter(ok.cl)
   
-})
-plan(sequential)
-#Compute p-value
-tmp_pval<-(apply(do.call(cbind,boot_bool),1,sum)+1)/(nboot+1)
-
-ok_cl_GRange_tbl %>% 
-  mutate(emp.pval=tmp_pval) %>% 
-  ggplot(.,aes(-log10(emp.pval)))+
-  geom_histogram()
+  message(chromo,": Subset target clusters")
+  plan(multisession, workers = 15)
+  ok_cl_GRange_tbl<-ok_cl_GRange_tbl %>% mutate(GRange=future_pmap(list(chr,bins,res),function(chr,bins,res){
+    return(GRanges(seqnames=chr,
+                   ranges = IRanges(start=as.numeric(bins),
+                                    end=as.numeric(bins)+res_num[res]-1
+                   )))
+    
+    
+  }))
+  plan(sequential)
+  
+  cl_list<-GRangesList(ok_cl_GRange_tbl$GRange)  
+  
+  tmp_cage_tbl<-chr_feature_GRange %>% as_tibble %>% dplyr::select(seqnames,start,end)%>%dplyr::rename(chrom=seqnames)
+  
+  # Compute feature genome-annotation
+  fn_folder<-paste0(fn_repo,chromo,"/")
+  fn_file<-grep('BED$',list.files(fn_folder),value = T)
+  fn_bed_l<-lapply(fn_file,function(f){
+    read_bed(paste0(fn_folder,f),n_fields = 3)
+  })
+  names(fn_bed_l)<-fn_file
+  
+  # Bootstrap
+  message(chromo,": Bootstrap peak content")
+  nboot<-1e4
+  plan(multisession, workers=15)
+  boot_bool<-future_map(1:nboot,function(i){
+    # Build random chromosome content
+    n_vec<-build_rn_chr_content(peakAnno,chr_feature_GRange,fn_file)
+    # Build random chromosome 
+    rnp_Grange<-rn_feature_GRange_build_fn(n_vec,fn_bed_l,hg19_coord,tmp_cage_tbl,fn_file)
+    # Compare with obs
+    return(countOverlaps(cl_list,rnp_Grange) >= countOverlaps(cl_list,chr_feature_GRange))
+    
+  })
+  plan(sequential)
+  #Compute p-value
+  tmp_pval<-(apply(do.call(cbind,boot_bool),1,sum)+1)/(nboot+1)
+  
+  ok_cl_GRange_tbl<-ok_cl_GRange_tbl %>% 
+    mutate(emp.pval=tmp_pval)
+  save(paste0("/data_transfer/BootTHiC_pval_tbl/GM12878/",chromo,"_pval_tbl.Rda"))
+}

@@ -679,6 +679,19 @@
       "Hash": "543776ae6848fde2f48ff3816d0628bc",
       "Requirements": []
     },
+    "bedtoolsr": {
+      "Package": "bedtoolsr",
+      "Version": "2.30.0-5",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteUsername": "PhanstielLab",
+      "RemoteRepo": "bedtoolsr",
+      "RemoteRef": "master",
+      "RemoteSha": "cce152f1ce653771d8d41431e0d12e4ef9c42193",
+      "Hash": "c4c34281ab43c6ea1659b849e1aaaee5",
+      "Requirements": []
+    },
     "biomaRt": {
       "Package": "biomaRt",
       "Version": "2.50.3",
@@ -854,13 +867,11 @@
     },
     "cli": {
       "Package": "cli",
-      "Version": "3.3.0",
+      "Version": "3.4.1",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "23abf173c2b783dcc43379ab9bba00ee",
-      "Requirements": [
-        "glue"
-      ]
+      "Hash": "0d297d01734d2bcea40197bd4971a764",
+      "Requirements": []
     },
     "clipr": {
       "Package": "clipr",
@@ -2210,10 +2221,10 @@
     },
     "rlang": {
       "Package": "rlang",
-      "Version": "1.0.2",
+      "Version": "1.0.6",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "04884d9a75d778aca22c7154b8333ec9",
+      "Hash": "4ed1f8336c8d52c3e750adcdc57228a7",
       "Requirements": []
     },
     "rmarkdown": {
