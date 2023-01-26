@@ -67,7 +67,7 @@ rn_feature_GRange_build_fn<-function(n_vec,fn_bed_l,hg19_coord,tmp_cage_tbl,fn_f
         class = c("try-error", "character")
       )
       while("try-error" %in% class(rn_fn_coord_l[[f]])){
-        rn_fn_coord_l[[f]]<-try(bed_shuffle(tmp_cage_tbl%>%sample_n(tmp_n),genome = hg19_coord,excl = fn_bed_l[[f]],within = T,max_tries=1e6),silent=T)
+        rn_fn_coord_l[[f]]<-try(valr::bed_shuffle(tmp_cage_tbl%>%dplyr::sample_n(tmp_n),genome = hg19_coord,excl = fn_bed_l[[f]],within = T,max_tries=1e6),silent=T)
       }
       
     }
@@ -77,7 +77,7 @@ rn_feature_GRange_build_fn<-function(n_vec,fn_bed_l,hg19_coord,tmp_cage_tbl,fn_f
         class = c("try-error", "character")
       )
       while("try-error" %in% class(rn_fn_coord_l[[f]])){
-        rn_fn_coord_l[[f]]<-try(valr::bed_shuffle(x = tmp_cage_tbl%>%sample_n(tmp_n),genome = hg19_coord,incl = fn_bed_l[[f]],within=T,max_tries=1e6),silent=T)
+        rn_fn_coord_l[[f]]<-try(valr::bed_shuffle(x = tmp_cage_tbl%>%dplyr::sample_n(tmp_n),genome = hg19_coord,incl = fn_bed_l[[f]],within=T,max_tries=1e6),silent=T)
         
       }
       # Collect the successful shuffling by eliminating the shuffles producing try-error objects
@@ -126,11 +126,11 @@ filter_cluster_fn<-function(cl_GRange_tbl,chr_feature_GRange,chromo,nworker){
 ###############################
 # Load data
 ## load clusters
-res_folder<-"~/data_transfer/determinate_bhicect2/GM12878/"
+res_folder<-"~/data_transfer/determinate_bhicect2/HMEC/"
 res_file<-"_spec_res.Rda"
 
 ## load feature
-feature_file<-"~/data_transfer/CAGE_GRange/CAGE_union_GM12878_Grange.Rda"
+feature_file<-"~/data_transfer/CAGE_GRange/CAGE_union_HMEC_Grange.Rda"
 ## Folder with functional bed files
 fn_repo<-"~/data_transfer/fn_BED/"
 genome_file<-"~/data_transfer/hg19.genome"
@@ -187,7 +187,7 @@ for(chromo in chr_set){
   # Bootstrap
   message(chromo,": Bootstrap peak content")
   nboot<-1e4
-  plan(multisession, workers=15)
+  plan(multisession,workers=20)
   boot_bool<-future_map(1:nboot,function(i){
     # Build random chromosome content
     n_vec<-build_rn_chr_content(peakAnno,chr_feature_GRange,fn_file)
@@ -203,5 +203,6 @@ for(chromo in chr_set){
   
   ok_cl_GRange_tbl<-ok_cl_GRange_tbl %>% 
     mutate(emp.pval=tmp_pval)
-  save(paste0("/data_transfer/BootTHiC_pval_tbl/GM12878/",chromo,"_pval_tbl.Rda"))
+  
+  save(ok_cl_GRange_tbl,file=paste0("~/data_transfer/BootTHiC_pval_tbl/HMEC/",chromo,"_pval_tbl.Rda"))
 }

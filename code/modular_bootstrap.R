@@ -148,7 +148,7 @@ txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
 
 feature_GRange<-get_obj_in_fn(feature_file)
 ###############################
-chromo<-"chr1"
+chromo<-"chr10"
 #cl_GRange_tbl<-get_obj_in_fn(paste0(cl_folder,chromo,cl_file))
 
 chr_feature_GRange<-feature_GRange[seqnames(feature_GRange)==chromo]
